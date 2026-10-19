@@ -133,3 +133,10 @@ export const LogoutIcon = (p: P) => (
 		<path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" />
 	</Icon>
 )
+
+export const LayersIcon = (p: P) => (
+	<Icon {...p}>
+		<path d="m12 2 10 5-10 5L2 7l10-5z" />
+		<path d="m2 17 10 5 10-5M2 12l10 5 10-5" />
+	</Icon>
+)

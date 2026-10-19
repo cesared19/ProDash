@@ -15,6 +15,19 @@ export type StatusCount = {
 
 export type Health = 'good' | 'warning' | 'bad' | 'unknown'
 
+export type EpicGroup = {
+	// null groups the tickets without an epic.
+	key: string | null
+	name: string | null
+	status: string | null
+	category: StatusCount['category'] | null
+	open: number
+	closed: number
+	byStatus: StatusCount[]
+	issueCount: number
+	issues: { key: string; summary: string; status: string; category: StatusCount['category'] }[]
+}
+
 export type Summary = {
 	projectKey: string
 	generatedAt: string
@@ -36,6 +49,8 @@ export type Summary = {
 		health: Health
 	}
 	history: { date: string; open: number }[]
+	epics: EpicGroup[]
+	jiraBaseUrl: string | null
 	truncated: boolean
 }
 

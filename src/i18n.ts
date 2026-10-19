@@ -67,6 +67,15 @@ const es = {
 	growing: (inRate: string, outRate: string) =>
 		`Entran ${inRate} por semana y salen ${outRate}: la lista está creciendo.`,
 	trajectory: 'Trayectoria',
+	byEpic: 'Por epic',
+	noEpic: 'Sin epic',
+	noEpics: 'No hay tickets abiertos ni cerrados en el periodo.',
+	epicOpen: (n: number, text: string) => `${text} ${n === 1 ? 'abierto' : 'abiertos'}`,
+	epicClosed: (n: number, text: string) => `${text} ${n === 1 ? 'cerrado' : 'cerrados'}`,
+	epicHelp: (period: string) => `Abiertos y cerrados (${period}).`,
+	epicTap: 'Toca una epic para ver sus tickets.',
+	showMore: (n: string) => `Ver ${n} más`,
+	moreInJira: (n: string) => `y ${n} más en Jira`,
 	// Chart
 	noHistory: 'Todavía no hay historia suficiente.',
 	openTickets: 'Tickets abiertos',
@@ -100,6 +109,7 @@ const es = {
 		statuses: 'Abiertos por estado',
 		times: 'Comparación de tiempos',
 		trajectory: 'Trayectoria',
+		epics: 'Por epic',
 	} satisfies Record<BlockId, string>,
 }
 
@@ -159,6 +169,15 @@ const en: Messages = {
 	growing: (inRate: string, outRate: string) =>
 		`${inRate} come in per week and ${outRate} go out: the list is growing.`,
 	trajectory: 'Trajectory',
+	byEpic: 'By epic',
+	noEpic: 'No epic',
+	noEpics: 'There are no open tickets or tickets closed in this period.',
+	epicOpen: (_n: number, text: string) => `${text} open`,
+	epicClosed: (_n: number, text: string) => `${text} closed`,
+	epicHelp: (period: string) => `Open and closed (${period}).`,
+	epicTap: 'Tap an epic to see its tickets.',
+	showMore: (n: string) => `Show ${n} more`,
+	moreInJira: (n: string) => `and ${n} more in Jira`,
 	noHistory: 'There is not enough history yet.',
 	openTickets: 'Open tickets',
 	projection: 'Projection',
@@ -189,6 +208,7 @@ const en: Messages = {
 		statuses: 'Open by status',
 		times: 'Time comparison',
 		trajectory: 'Trajectory',
+		epics: 'By epic',
 	},
 }
 

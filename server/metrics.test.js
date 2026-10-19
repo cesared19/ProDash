@@ -66,3 +66,38 @@ test('an empty backlog is done', () => {
 	assert.equal(s.trajectory.etaWeeks, 0)
 	assert.equal(s.trajectory.health, 'good')
 })
+
+test('groups issues by epic, subtasks under their parent epic, the rest last', () => {
+	const epic = (key, name) => ({ key, fields: { summary: name, issuetype: { hierarchyLevel: 1 }, status: { name: 'En curso', statusCategory: { key: 'indeterminate' } } } })
+	const make = (key, category, parent, closed) =>
+		normalizeIssue({
+			key,
+			fields: {
+				summary: `Ticket ${key}`,
+				status: { name: category === 'done' ? 'Hecho' : 'En curso', statusCategory: { key: category } },
+				created: ago(20),
+				resolutiondate: closed != null ? ago(closed) : null,
+				parent,
+			},
+		})
+	const open = [
+		make('X-1', 'indeterminate', epic('X-E1', 'Pagos')),
+		make('X-2', 'indeterminate', { key: 'X-1', fields: { issuetype: { hierarchyLevel: 0 } } }),
+		make('X-3', 'indeterminate'),
+	]
+	const closed = [make('X-4', 'done', epic('X-E1', 'Pagos'), 2), make('X-5', 'done', epic('X-E2', 'Login'), 3)]
+	const s = buildSummary({ open, closed, days: 30, now })
+
+	assert.deepEqual(
+		s.epics.map((e) => [e.key, e.name, e.open, e.closed]),
+		[
+			['X-E1', 'Pagos', 2, 1],
+			['X-E2', 'Login', 0, 1],
+			[null, null, 1, 0],
+		],
+	)
+	assert.deepEqual(
+		s.epics[0].issues.map((i) => i.key),
+		['X-1', 'X-2', 'X-4'],
+	)
+})

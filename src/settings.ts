@@ -1,9 +1,9 @@
 import { useCallback, useState } from 'react'
 import { browserLang, type Lang } from './i18n'
 
-export type BlockId = 'open' | 'closed' | 'eta' | 'statuses' | 'times' | 'trajectory'
+export type BlockId = 'open' | 'closed' | 'eta' | 'statuses' | 'times' | 'trajectory' | 'epics'
 
-export const BLOCKS: BlockId[] = ['open', 'closed', 'eta', 'statuses', 'times', 'trajectory']
+export const BLOCKS: BlockId[] = ['open', 'closed', 'eta', 'statuses', 'times', 'trajectory', 'epics']
 
 export type Period = 30 | 90 | 180 | 365 | 'all'
 

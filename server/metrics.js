@@ -7,13 +7,81 @@ export function normalizeIssue(issue) {
 	const f = issue.fields ?? {}
 	const done = f.status?.statusCategory?.key === 'done'
 	const closedRaw = done ? (f.resolutiondate ?? f.statuscategorychangedate) : null
+	// `parent` is the epic for standard issues and the parent issue for subtasks
+	// (Jira Cloud uses it for both company- and team-managed projects).
+	const parent = f.parent
+	const parentIsEpic = (parent?.fields?.issuetype?.hierarchyLevel ?? 0) >= 1
 	return {
 		key: issue.key,
+		summary: f.summary ?? '',
 		status: f.status?.name ?? 'Sin estado',
 		category: f.status?.statusCategory?.key ?? 'new',
 		created: Date.parse(f.created),
 		closedAt: closedRaw ? Date.parse(closedRaw) : null,
+		parentKey: parent?.key ?? null,
+		epic: parentIsEpic
+			? {
+					key: parent.key,
+					name: parent.fields?.summary ?? parent.key,
+					status: parent.fields?.status?.name ?? '',
+					category: parent.fields?.status?.statusCategory?.key ?? 'new',
+				}
+			: null,
 	}
+}
+
+const MAX_ISSUES_PER_EPIC = 200
+
+/**
+ * Groups open issues and those closed in the period by epic. Subtasks take
+ * the epic of their parent when the parent is among the loaded issues.
+ * Issues without an epic go to a last group with key null.
+ */
+export function buildEpics(open, closedInPeriod) {
+	const all = [...open, ...closedInPeriod]
+	const byKey = new Map(all.map((i) => [i.key, i]))
+	const groups = new Map()
+	for (const issue of all) {
+		const epic = issue.epic ?? (issue.parentKey ? byKey.get(issue.parentKey)?.epic : null) ?? null
+		const id = epic?.key ?? null
+		let group = groups.get(id)
+		if (!group) {
+			group = { key: id, name: epic?.name ?? null, status: epic?.status ?? null, category: epic?.category ?? null, open: 0, closed: 0, byStatus: new Map(), issues: [] }
+			groups.set(id, group)
+		}
+		if (issue.category === 'done') group.closed++
+		else {
+			group.open++
+			const entry = group.byStatus.get(issue.status) ?? { name: issue.status, category: issue.category, count: 0 }
+			entry.count++
+			group.byStatus.set(issue.status, entry)
+		}
+		group.issues.push(issue)
+	}
+	const rank = (i) => (CATEGORY_ORDER[i.category] ?? 1)
+	return [...groups.values()]
+		.sort((a, b) => (a.key === null) - (b.key === null) || b.open - a.open || b.closed - a.closed)
+		.map((g) => {
+			const issues = g.issues.sort(
+				(a, b) => rank(a) - rank(b) || (b.closedAt ?? 0) - (a.closedAt ?? 0) || a.created - b.created,
+			)
+			return {
+				key: g.key,
+				name: g.name,
+				status: g.status,
+				category: g.category,
+				open: g.open,
+				closed: g.closed,
+				byStatus: [...g.byStatus.values()].sort((a, b) => rank(a) - rank(b) || b.count - a.count),
+				issueCount: issues.length,
+				issues: issues.slice(0, MAX_ISSUES_PER_EPIC).map((i) => ({
+					key: i.key,
+					summary: i.summary,
+					status: i.status,
+					category: i.category,
+				})),
+			}
+		})
 }
 
 function average(values) {
@@ -106,5 +174,6 @@ export function buildSummary({ open, closed, days, now = Date.now() }) {
 			health,
 		},
 		history,
+		epics: buildEpics(open, closedInPeriod),
 	}
 }

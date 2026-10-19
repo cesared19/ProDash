@@ -15,6 +15,26 @@ const TYPES = [
 	{ id: '10005', name: 'Epic', subtask: false, hierarchyLevel: 1 },
 ]
 
+const EPICS = [
+	{ name: 'Registro y login', status: 'En curso', category: 'indeterminate' },
+	{ name: 'Pagos con tarjeta', status: 'En curso', category: 'indeterminate' },
+	{ name: 'Notificaciones', status: 'Por hacer', category: 'new' },
+	{ name: 'Rediseño del perfil', status: 'En curso', category: 'indeterminate' },
+]
+
+const SUMMARIES = [
+	'Pantalla de inicio de sesión',
+	'Validar formulario',
+	'Ajustar textos',
+	'Conectar con la API',
+	'Revisar accesibilidad',
+	'Mejorar rendimiento',
+	'Corregir diseño en móvil',
+	'Agregar pruebas',
+	'Actualizar iconos',
+	'Guardar preferencias',
+]
+
 const OPEN_STATUSES = [
 	{ name: 'Por hacer', category: 'new', weight: 5 },
 	{ name: 'En curso', category: 'indeterminate', weight: 4 },
@@ -46,10 +66,27 @@ function generate(projectKey) {
 					return OPEN_STATUSES.find((s) => (r -= s.weight) < 0) ?? OPEN_STATUSES[0]
 				})()
 		const closed = isDone ? Math.min(now, created + (2 + rand() * 30) * DAY) : null
+		// Subtasks hang from an earlier issue; the rest from an epic (or none).
+		const epicIndex = Math.floor(rand() * (EPICS.length + 1))
+		const parentN = type.subtask && n > 1 ? 1 + Math.floor(rand() * (n - 1)) : null
+		const parent = parentN
+			? { key: `${projectKey}-${parentN}`, fields: { summary: '', issuetype: { hierarchyLevel: 0 } } }
+			: epicIndex < EPICS.length
+				? {
+						key: `${projectKey}-E${epicIndex + 1}`,
+						fields: {
+							summary: EPICS[epicIndex].name,
+							issuetype: { hierarchyLevel: 1 },
+							status: { name: EPICS[epicIndex].status, statusCategory: { key: EPICS[epicIndex].category } },
+						},
+					}
+				: undefined
 		issues.push({
 			key: `${projectKey}-${n}`,
 			typeId: type.id,
 			fields: {
+				summary: SUMMARIES[Math.floor(rand() * SUMMARIES.length)],
+				parent,
 				created: new Date(created).toISOString(),
 				resolutiondate: closed ? new Date(closed).toISOString() : null,
 				statuscategorychangedate: new Date(closed ?? created).toISOString(),

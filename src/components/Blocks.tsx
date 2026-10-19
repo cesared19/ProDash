@@ -124,7 +124,7 @@ export function EtaBlock({ summary }: { summary: Summary }) {
 	)
 }
 
-function Card({ icon, title, children }: { icon: ReactNode; title: string; children: ReactNode }) {
+export function Card({ icon, title, children }: { icon: ReactNode; title: string; children: ReactNode }) {
 	return (
 		<section className="card" aria-label={title}>
 			<h2 className="card-title">

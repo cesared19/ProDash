@@ -865,3 +865,166 @@ input[type='password'],
 		padding: 8px 6px;
 	}
 }
+
+/* ---------- Epics ---------- */
+
+.report.exporting .screen-only {
+	display: none;
+}
+
+.card-help {
+	margin: -8px 0 16px;
+	color: var(--muted);
+	font-size: 1rem;
+}
+
+.epic-list,
+.issue-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.epic {
+	border-top: 1px solid var(--surface-2);
+	padding: 12px 0 14px;
+}
+
+.epic-head {
+	display: flex;
+	align-items: center;
+	gap: 12px;
+	width: 100%;
+	min-height: 48px;
+	padding: 4px 0;
+	border: 0;
+	background: none;
+	text-align: left;
+}
+
+.epic-chevron {
+	width: 1.5rem;
+	height: 1.5rem;
+	transform: rotate(-90deg);
+	transition: transform 0.15s;
+	color: var(--muted);
+}
+
+.epic.expanded .epic-chevron {
+	transform: none;
+}
+
+.epic-title {
+	flex: 1;
+	min-width: 0;
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 4px 10px;
+}
+
+.epic-name {
+	font-size: 1.25rem;
+	font-weight: 700;
+}
+
+.epic-key {
+	font-size: 0.9rem;
+	font-weight: 600;
+	color: var(--muted);
+}
+
+.epic-counts {
+	display: flex;
+	flex-shrink: 0;
+	justify-content: flex-end;
+	gap: 4px 16px;
+	font-size: 1.125rem;
+	font-weight: 700;
+	white-space: nowrap;
+}
+
+.epic-closed {
+	color: var(--muted);
+}
+
+.epic-bar {
+	display: flex;
+	gap: 2px;
+	height: 14px;
+	margin-left: calc(1.5rem + 12px);
+	border-radius: 7px;
+	overflow: hidden;
+	background: var(--surface-2);
+}
+
+.epic-body {
+	margin: 12px 0 0 calc(1.5rem + 12px);
+	display: grid;
+	gap: 12px;
+	justify-items: start;
+}
+
+.issue-list {
+	width: 100%;
+	display: grid;
+	gap: 2px;
+}
+
+.issue-row {
+	display: grid;
+	grid-template-columns: minmax(7.5rem, auto) auto 1fr;
+	align-items: center;
+	gap: 12px;
+	padding: 8px 0;
+	border-bottom: 1px solid var(--surface-2);
+	font-size: 1rem;
+}
+
+.status-pill {
+	color: #fff;
+	font-weight: 700;
+	font-size: 0.875rem;
+	padding: 4px 10px;
+	border-radius: 999px;
+	text-align: center;
+	white-space: nowrap;
+	overflow: hidden;
+	text-overflow: ellipsis;
+}
+
+.issue-key {
+	font-weight: 700;
+	color: var(--accent);
+	white-space: nowrap;
+}
+
+span.issue-key {
+	color: var(--text-2);
+}
+
+.issue-summary {
+	min-width: 0;
+	color: var(--text);
+}
+
+@container (max-width: 640px) {
+	.epic-head {
+		flex-wrap: wrap;
+	}
+	.epic-counts {
+		width: 100%;
+		justify-content: flex-start;
+		padding-left: calc(1.5rem + 12px);
+	}
+	.epic-bar,
+	.epic-body {
+		margin-left: 0;
+	}
+	.issue-row {
+		grid-template-columns: auto 1fr;
+	}
+	.issue-summary {
+		grid-column: 1 / -1;
+	}
+}

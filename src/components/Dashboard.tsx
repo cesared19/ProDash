@@ -5,6 +5,7 @@ import { useT } from '../i18n'
 import { exportPng, REPORT_WIDTH } from '../exportPng'
 import type { BlockId, Period, Settings } from '../settings'
 import { ClosedBlock, EtaBlock, OpenBlock, StatusesBlock, TimesBlock, TrajectoryBlock } from './Blocks'
+import { EpicsBlock } from './EpicsBlock'
 import { CustomizePanel } from './CustomizePanel'
 import { ChevronDownIcon, ImageIcon, LogoutIcon, RefreshIcon, SlidersIcon } from './icons'
 import { ProjectPicker } from './ProjectPicker'
@@ -18,6 +19,7 @@ const BLOCK_VIEWS: Record<BlockId, { Component: (p: { summary: Summary }) => JSX
 	statuses: { Component: StatusesBlock, size: 'full' },
 	times: { Component: TimesBlock, size: 'half' },
 	trajectory: { Component: TrajectoryBlock, size: 'half' },
+	epics: { Component: EpicsBlock, size: 'full' },
 }
 
 const REFRESH_MS = 5 * 60 * 1000

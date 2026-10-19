@@ -135,7 +135,7 @@ app.get('/api/projects/:key/summary', async (req, res, next) => {
 	try {
 		let base = `project = "${key}"`
 		if (exclude.length) base += ` AND issuetype not in (${exclude.join(',')})`
-		const fields = ['status', 'created', 'resolutiondate', 'statuscategorychangedate']
+		const fields = ['summary', 'status', 'created', 'resolutiondate', 'statuscategorychangedate', 'parent']
 		// `updated` is a cheap superset filter: closing an issue updates it.
 		// The exact close date is checked in buildSummary.
 		const closedJql = `${base} AND statusCategory = Done${days ? ` AND updated >= -${days}d` : ''} ORDER BY updated DESC`
@@ -148,7 +148,12 @@ app.get('/api/projects/:key/summary', async (req, res, next) => {
 			closed: closed.issues.map(normalizeIssue),
 			days,
 		})
-		res.json({ ...summary, projectKey: key, truncated: open.truncated || closed.truncated })
+		res.json({
+			...summary,
+			projectKey: key,
+			jiraBaseUrl: config.mock ? null : config.jira.baseUrl,
+			truncated: open.truncated || closed.truncated,
+		})
 	} catch (e) {
 		next(e)
 	}
