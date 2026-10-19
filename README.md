@@ -17,7 +17,8 @@ Se puede personalizar qué bloques se ven, su orden, qué tipos de ticket no se 
 1. Instala [Node.js](https://nodejs.org) (versión LTS).
 2. Crea un token de API de Jira en https://id.atlassian.com/manage-profile/security/api-tokens.
 3. Haz doble clic en **`Iniciar ProDash.command`**. La primera vez crea el archivo `.env` y lo abre: completa la URL de Jira, tu email, el token y una contraseña para el dashboard, guárdalo y vuelve a hacer doble clic.
-   - Si macOS dice que no puede abrirlo, haz clic derecho → **Abrir** la primera vez.
+   - Si macOS dice que *no ha podido verificar* el archivo (pasa cuando se descarga el ZIP desde el navegador): pulsa **Aceptar**, ve a **Ajustes del Sistema → Privacidad y seguridad**, pulsa **Abrir igualmente** junto al aviso y vuelve a hacer doble clic. También se puede quitar la marca desde la Terminal con `xattr -d com.apple.quarantine "Iniciar ProDash.command"`.
+   - Para evitar el aviso, descarga el proyecto con `git clone https://github.com/cesared19/ProDash` en lugar del ZIP.
 4. Se abre el navegador en http://localhost:3100. Entra con la contraseña y elige el proyecto.
 
 Desde la terminal es lo mismo:
