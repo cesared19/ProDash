@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react'
 import type { Health, Summary } from '../api'
-import { duration, durationText, longDate, periodLabel, rate } from '../format'
+import { count, duration, durationText, longDate, periodLabel, rate } from '../format'
+import { useT } from '../i18n'
 import { TrendChart } from './TrendChart'
 import {
 	AlertIcon,
@@ -15,11 +16,11 @@ import {
 } from './icons'
 
 // Status colors are reserved for the health verdict and always ship with an icon and a word.
-export const HEALTH: Record<Health, { label: string; className: string; Icon: typeof CheckCircleIcon }> = {
-	good: { label: 'Al día', className: 'tone-good', Icon: CheckCircleIcon },
-	warning: { label: 'Atención', className: 'tone-warning', Icon: AlertIcon },
-	bad: { label: 'Atrasado', className: 'tone-bad', Icon: StopIcon },
-	unknown: { label: 'Sin datos', className: 'tone-neutral', Icon: QuestionIcon },
+export const HEALTH: Record<Health, { className: string; Icon: typeof CheckCircleIcon }> = {
+	good: { className: 'tone-good', Icon: CheckCircleIcon },
+	warning: { className: 'tone-warning', Icon: AlertIcon },
+	bad: { className: 'tone-bad', Icon: StopIcon },
+	unknown: { className: 'tone-neutral', Icon: QuestionIcon },
 }
 
 // "To do" statuses are neutral; in-progress statuses take categorical hues in fixed order.
@@ -66,54 +67,57 @@ function Tile({
 }
 
 export function OpenBlock({ summary }: { summary: Summary }) {
+	const t = useT()
 	return (
 		<Tile
 			className="tone-open"
 			icon={<InboxIcon />}
-			value={summary.openCount.toLocaleString('es')}
-			label="Abiertos"
-			hint="Tickets por cerrar"
+			value={count(t, summary.openCount)}
+			label={t.open}
+			hint={t.openHint}
 		/>
 	)
 }
 
 export function ClosedBlock({ summary }: { summary: Summary }) {
+	const t = useT()
 	return (
 		<Tile
 			className="tone-closed"
 			icon={<CheckCircleIcon />}
-			value={summary.closedCount.toLocaleString('es')}
-			label="Cerrados"
-			hint={periodLabel(summary.periodDays)}
+			value={count(t, summary.closedCount)}
+			label={t.closed}
+			hint={periodLabel(t, summary.periodDays)}
 		/>
 	)
 }
 
 export function EtaBlock({ summary }: { summary: Summary }) {
-	const t = summary.trajectory
-	const health = HEALTH[t.health]
-	const eta = duration(t.etaWeeks == null ? null : t.etaWeeks * 7)
+	const t = useT()
+	const tr = summary.trajectory
+	const health = HEALTH[tr.health]
+	const eta = duration(t, tr.etaWeeks == null ? null : tr.etaWeeks * 7)
 	let hint: ReactNode
-	if (t.remaining === 0) hint = 'No queda nada abierto'
-	else if (t.etaWeeks == null) hint = 'No hubo cierres en el periodo'
+	if (tr.remaining === 0) hint = t.nothingOpen
+	else if (tr.etaWeeks == null) hint = t.noClosures
 	else
 		hint = (
 			<>
-				Cerrando {rate(t.closeRatePerWeek)} por semana
-				{t.etaDate && <> · hacia el {longDate(t.etaDate)}</>}
+				{t.closingRate(rate(t, tr.closeRatePerWeek))}
+				{tr.etaDate && t.towards(longDate(t, tr.etaDate))}
 			</>
 		)
 	return (
 		<Tile
 			className={health.className}
 			icon={<FlagIcon />}
-			value={t.remaining === 0 ? '¡Listo!' : t.etaWeeks == null ? '?' : `~${eta.value}`}
-			unit={t.remaining === 0 || t.etaWeeks == null ? undefined : eta.unit}
-			label="Para cerrar todo"
+			value={tr.remaining === 0 ? t.allDone : tr.etaWeeks == null ? '?' : `~${eta.value}`}
+			unit={tr.remaining === 0 || tr.etaWeeks == null ? undefined : eta.unit}
+			label={t.toCloseAll}
 			hint={hint}
 			badge={
 				<span className="badge">
-					<health.Icon /> {health.label}
+					<health.Icon /> {t.health[tr.health]}
 				</span>
 			}
 		/>
@@ -133,15 +137,16 @@ function Card({ icon, title, children }: { icon: ReactNode; title: string; child
 }
 
 export function StatusesBlock({ summary }: { summary: Summary }) {
+	const t = useT()
 	const tones = statusTones(summary.byStatus)
 	const total = summary.openCount
 	return (
-		<Card icon={<GridIcon />} title="Abiertos por estado">
+		<Card icon={<GridIcon />} title={t.byStatus}>
 			{total === 0 ? (
-				<p className="empty">No hay tickets abiertos.</p>
+				<p className="empty">{t.noOpen}</p>
 			) : (
 				<>
-					<div className="stack-bar" role="img" aria-label="Proporción de tickets por estado">
+					<div className="stack-bar" role="img" aria-label={t.statusShare}>
 						{summary.byStatus.map((s, i) => (
 							<div
 								key={s.name}
@@ -154,7 +159,7 @@ export function StatusesBlock({ summary }: { summary: Summary }) {
 					<div className="status-grid">
 						{summary.byStatus.map((s, i) => (
 							<div key={s.name} className={`status-tile ${tones[i]}`}>
-								<div className="status-count">{s.count.toLocaleString('es')}</div>
+								<div className="status-count">{count(t, s.count)}</div>
 								<div className="status-name">{s.name}</div>
 								<div className="status-pct">{Math.round((s.count / total) * 100)}%</div>
 							</div>
@@ -167,42 +172,38 @@ export function StatusesBlock({ summary }: { summary: Summary }) {
 }
 
 export function TimesBlock({ summary }: { summary: Summary }) {
-	const t = summary.trajectory
-	const lead = t.avgLeadTimeDays
-	const age = t.avgOpenAgeDays
+	const t = useT()
+	const tr = summary.trajectory
+	const lead = tr.avgLeadTimeDays
+	const age = tr.avgOpenAgeDays
 	const max = Math.max(lead ?? 0, age ?? 0, 1)
-	const health = HEALTH[t.health]
-	let verdict: string
-	if (lead == null || age == null) verdict = 'Aún no hay datos suficientes para comparar.'
-	else if (t.health === 'good') verdict = 'Los abiertos van dentro de lo normal.'
-	else if (t.health === 'warning') verdict = 'Los abiertos llevan algo más de lo normal.'
-	else verdict = 'Los abiertos llevan mucho más de lo normal.'
+	const health = HEALTH[tr.health]
+	const verdict = lead == null || age == null ? t.verdict.unknown : t.verdict[tr.health]
 
 	return (
-		<Card icon={<ClockIcon />} title="¿Cuánto tardan?">
+		<Card icon={<ClockIcon />} title={t.howLong}>
 			<div className="compare">
 				<div className="compare-row">
-					<div className="compare-label">Un ticket tarda en cerrarse</div>
+					<div className="compare-label">{t.takesToClose}</div>
 					<div className="compare-track">
 						<div className="compare-bar tone-closed" style={{ width: `${((lead ?? 0) / max) * 100}%` }} />
 					</div>
-					<div className="compare-value">{durationText(lead)}</div>
+					<div className="compare-value">{durationText(t, lead)}</div>
 				</div>
 				<div className="compare-row">
-					<div className="compare-label">Los abiertos llevan esperando</div>
+					<div className="compare-label">{t.openWaiting}</div>
 					<div className="compare-track">
 						<div className={`compare-bar ${health.className}`} style={{ width: `${((age ?? 0) / max) * 100}%` }} />
 					</div>
-					<div className="compare-value">{durationText(age)}</div>
+					<div className="compare-value">{durationText(t, age)}</div>
 				</div>
 			</div>
 			<p className={`verdict ${health.className}-text`}>
 				<health.Icon /> {verdict}
 			</p>
-			{t.createRatePerWeek > t.closeRatePerWeek && t.remaining > 0 && (
+			{tr.createRatePerWeek > tr.closeRatePerWeek && tr.remaining > 0 && (
 				<p className="note">
-					<AlertIcon /> Entran {rate(t.createRatePerWeek)} por semana y salen {rate(t.closeRatePerWeek)}: la lista
-					está creciendo.
+					<AlertIcon /> {t.growing(rate(t, tr.createRatePerWeek), rate(t, tr.closeRatePerWeek))}
 				</p>
 			)}
 		</Card>
@@ -210,8 +211,9 @@ export function TimesBlock({ summary }: { summary: Summary }) {
 }
 
 export function TrajectoryBlock({ summary }: { summary: Summary }) {
+	const t = useT()
 	return (
-		<Card icon={<ChartIcon />} title="Trayectoria">
+		<Card icon={<ChartIcon />} title={t.trajectory}>
 			<TrendChart summary={summary} />
 		</Card>
 	)

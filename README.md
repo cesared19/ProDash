@@ -10,7 +10,7 @@ Muestra:
 - **¿Cuánto tardan?**: el tiempo promedio que tarda un ticket en cerrarse comparado con el tiempo que llevan esperando los abiertos. El color indica si van **al día** (verde), si piden **atención** (ámbar) o si van **atrasados** (rojo).
 - **Trayectoria**: la evolución de los tickets abiertos y la proyección hasta cerrarlos.
 
-Se puede personalizar qué bloques se ven, su orden, qué tipos de ticket no se cuentan y activar el texto extra grande. Las preferencias se guardan en cada dispositivo.
+Se puede personalizar qué bloques se ven, su orden, qué tipos de ticket no se cuentan, el idioma (español o inglés) y activar el texto extra grande. Las preferencias se guardan en cada dispositivo; el idioma inicial es el del navegador y también se puede cambiar en la pantalla de entrada. Los nombres de estados y tipos de ticket se muestran tal como están en Jira.
 
 ## Puesta en marcha en el Mac
 

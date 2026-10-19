@@ -8,6 +8,7 @@ import { loadEnvFile, readConfig } from './env.js'
 import { createJiraClient, JiraError } from './jira.js'
 import { createMockClient } from './mock.js'
 import { buildSummary, normalizeIssue } from './metrics.js'
+import { messages } from './messages.js'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 loadEnvFile(path.join(root, '.env'))
@@ -64,7 +65,7 @@ app.post('/api/login', async (req, res) => {
 	const password = typeof req.body?.password === 'string' ? req.body.password : ''
 	if (!safeEqual(password, config.password)) {
 		await new Promise((r) => setTimeout(r, 600))
-		return res.status(401).json({ error: 'Contraseña incorrecta' })
+		return res.status(401).json({ error: messages(req).wrongPassword })
 	}
 	const expires = String(Date.now() + SESSION_DAYS * 24 * 60 * 60 * 1000)
 	res.setHeader(
@@ -80,7 +81,7 @@ app.post('/api/logout', (_req, res) => {
 })
 
 app.use('/api', (req, res, next) => {
-	if (!sessionValid(req)) return res.status(401).json({ error: 'Sesión expirada' })
+	if (!sessionValid(req)) return res.status(401).json({ error: messages(req).sessionExpired })
 	next()
 })
 
@@ -89,13 +90,13 @@ const PROJECT_KEY = /^[A-Za-z][A-Za-z0-9_]{0,49}$/
 function projectKey(req, res) {
 	const key = req.params.key
 	if (!PROJECT_KEY.test(key)) {
-		res.status(400).json({ error: 'Clave de proyecto inválida' })
+		res.status(400).json({ error: messages(req).invalidKey })
 		return null
 	}
 	return key.toUpperCase()
 }
 
-app.get('/api/projects', async (_req, res, next) => {
+app.get('/api/projects', async (req, res, next) => {
 	try {
 		const projects = await jira.projects()
 		if (projects.length === 0) {
@@ -103,10 +104,7 @@ app.get('/api/projects', async (_req, res, next) => {
 				await jira.myself()
 			} catch (e) {
 				if (e instanceof JiraError && e.status === 401) {
-					return res.status(502).json({
-						error:
-							'Jira no aceptó las credenciales y respondió como visitante anónimo. Revisa en .env que JIRA_EMAIL sea el email de la cuenta que creó el token, que JIRA_API_TOKEN esté completo y que JIRA_BASE_URL sea tu sitio (https://tu-empresa.atlassian.net). Después reinicia ProDash.',
-					})
+					return res.status(502).json({ error: messages(req).anonymous })
 				}
 				throw e
 			}
@@ -156,7 +154,7 @@ app.get('/api/projects/:key/summary', async (req, res, next) => {
 	}
 })
 
-app.use('/api', (_req, res) => res.status(404).json({ error: 'No encontrado' }))
+app.use('/api', (req, res) => res.status(404).json({ error: messages(req).notFound }))
 
 const dist = path.join(root, 'dist')
 if (fs.existsSync(dist)) {
@@ -167,19 +165,20 @@ if (fs.existsSync(dist)) {
 }
 
 // eslint-disable-next-line no-unused-vars
-app.use((err, _req, res, _next) => {
+app.use((err, req, res, _next) => {
+	const m = messages(req)
 	if (err instanceof JiraError) {
 		const status = err.status === 401 || err.status === 403 ? 502 : err.status === 404 ? 404 : 502
 		const message =
 			err.status === 401
-				? 'Jira rechazó las credenciales. Revisa JIRA_EMAIL y JIRA_API_TOKEN en .env.'
+				? m.rejected
 				: err.status === 404
-					? 'Jira no encontró el proyecto o no tienes acceso.'
-					: err.message
+					? m.projectNotFound
+					: `${m.jiraStatus(err.status)}${err.detail ? `: ${err.detail}` : ''}`
 		return res.status(status).json({ error: message })
 	}
 	console.error(err)
-	res.status(502).json({ error: 'No se pudo conectar con Jira. Revisa la conexión y JIRA_BASE_URL.' })
+	res.status(502).json({ error: m.unreachable })
 })
 
 app.listen(config.port, '0.0.0.0', () => {

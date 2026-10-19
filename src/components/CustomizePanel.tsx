@@ -1,5 +1,6 @@
 import type { IssueType } from '../api'
-import { BLOCKS, type BlockId, type Settings } from '../settings'
+import { LANGS, useT } from '../i18n'
+import type { BlockId, Settings } from '../settings'
 import { ArrowDownIcon, ArrowUpIcon } from './icons'
 
 export function CustomizePanel({
@@ -15,7 +16,8 @@ export function CustomizePanel({
 	excluded: string[]
 	onClose: () => void
 }) {
-	const label = (id: BlockId) => BLOCKS.find((b) => b.id === id)!.label
+	const t = useT()
+	const label = (id: BlockId) => t.blocks[id]
 
 	function move(index: number, delta: number) {
 		const order = [...settings.order]
@@ -43,26 +45,41 @@ export function CustomizePanel({
 
 	return (
 		<div className="overlay" onClick={onClose}>
-			<div className="sheet" role="dialog" aria-label="Personalizar" onClick={(e) => e.stopPropagation()}>
+			<div className="sheet" role="dialog" aria-label={t.customize} onClick={(e) => e.stopPropagation()}>
 				<div className="sheet-head">
-					<h2>Personalizar</h2>
+					<h2>{t.customize}</h2>
 					<button className="button primary" onClick={onClose}>
-						Listo
+						{t.done}
 					</button>
 				</div>
 
-				<h3>Texto</h3>
+				<h3>{t.language}</h3>
+				<div className="segmented" role="radiogroup" aria-label={t.language}>
+					{LANGS.map((l) => (
+						<button
+							key={l.value}
+							role="radio"
+							aria-checked={settings.lang === l.value}
+							className={settings.lang === l.value ? 'active' : ''}
+							onClick={() => update({ lang: l.value })}
+						>
+							{l.label}
+						</button>
+					))}
+				</div>
+
+				<h3>{t.text}</h3>
 				<label className="switch-row">
 					<input
 						type="checkbox"
 						checked={settings.bigText}
 						onChange={(e) => update({ bigText: e.target.checked })}
 					/>
-					<span>Texto extra grande</span>
+					<span>{t.bigText}</span>
 				</label>
 
-				<h3>Bloques</h3>
-				<p className="muted">Marca los que quieres ver y ordénalos con las flechas.</p>
+				<h3>{t.blocksTitle}</h3>
+				<p className="muted">{t.blocksHelp}</p>
 				<ul className="order-list">
 					{settings.order.map((id, i) => (
 						<li key={id}>
@@ -73,7 +90,7 @@ export function CustomizePanel({
 							<span className="order-buttons">
 								<button
 									className="icon-button"
-									aria-label={`Subir ${label(id)}`}
+									aria-label={t.moveUp(label(id))}
 									disabled={i === 0}
 									onClick={() => move(i, -1)}
 								>
@@ -81,7 +98,7 @@ export function CustomizePanel({
 								</button>
 								<button
 									className="icon-button"
-									aria-label={`Bajar ${label(id)}`}
+									aria-label={t.moveDown(label(id))}
 									disabled={i === settings.order.length - 1}
 									onClick={() => move(i, 1)}
 								>
@@ -92,9 +109,9 @@ export function CustomizePanel({
 					))}
 				</ul>
 
-				<h3>Tipos de ticket que no se cuentan</h3>
-				<p className="muted">Por defecto se excluyen errores (bugs) y épicas.</p>
-				{!issueTypes && <p className="muted">Cargando tipos…</p>}
+				<h3>{t.typesTitle}</h3>
+				<p className="muted">{t.typesHelp}</p>
+				{!issueTypes && <p className="muted">{t.loadingTypes}</p>}
 				{issueTypes && (
 					<>
 						<div className="type-list">
@@ -106,7 +123,7 @@ export function CustomizePanel({
 							))}
 						</div>
 						<button className="button" onClick={resetTypes}>
-							Volver a los tipos por defecto
+							{t.resetTypes}
 						</button>
 					</>
 				)}

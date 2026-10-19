@@ -1,7 +1,9 @@
 export class JiraError extends Error {
-	constructor(status, message) {
-		super(message)
+	// `detail` is Jira's own explanation, if it gave one.
+	constructor(status, detail) {
+		super(`Jira ${status}${detail ? `: ${detail}` : ''}`)
 		this.status = status
+		this.detail = detail
 	}
 }
 
@@ -21,15 +23,14 @@ export function createJiraClient({ baseUrl, email, token }) {
 			body: body ? JSON.stringify(body) : undefined,
 		})
 		if (!res.ok) {
-			let message = `Jira respondió ${res.status}`
+			let detail = ''
 			try {
 				const data = await res.json()
-				const detail = [...(data.errorMessages ?? []), ...Object.values(data.errors ?? {})]
-				if (detail.length) message += `: ${detail.join(' ')}`
+				detail = [...(data.errorMessages ?? []), ...Object.values(data.errors ?? {})].join(' ')
 			} catch {
-				// Not JSON; keep the status-only message.
+				// Not JSON; report the status only.
 			}
-			throw new JiraError(res.status, message)
+			throw new JiraError(res.status, detail)
 		}
 		return res.json()
 	}

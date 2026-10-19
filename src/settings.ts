@@ -1,15 +1,9 @@
 import { useCallback, useState } from 'react'
+import { browserLang, type Lang } from './i18n'
 
 export type BlockId = 'open' | 'closed' | 'eta' | 'statuses' | 'times' | 'trajectory'
 
-export const BLOCKS: { id: BlockId; label: string }[] = [
-	{ id: 'open', label: 'Abiertos' },
-	{ id: 'closed', label: 'Cerrados' },
-	{ id: 'eta', label: 'Tiempo para terminar' },
-	{ id: 'statuses', label: 'Abiertos por estado' },
-	{ id: 'times', label: 'Comparación de tiempos' },
-	{ id: 'trajectory', label: 'Trayectoria' },
-]
+export const BLOCKS: BlockId[] = ['open', 'closed', 'eta', 'statuses', 'times', 'trajectory']
 
 export type Period = 30 | 90 | 180 | 365 | 'all'
 
@@ -21,15 +15,17 @@ export type Settings = {
 	// Excluded issue type IDs per project; missing = defaults (bugs and epics).
 	excluded: Record<string, string[]>
 	bigText: boolean
+	lang: Lang
 }
 
 const DEFAULTS: Settings = {
 	projectKey: null,
 	period: 90,
-	order: BLOCKS.map((b) => b.id),
+	order: BLOCKS,
 	hidden: [],
 	excluded: {},
 	bigText: false,
+	lang: browserLang(),
 }
 
 const STORAGE_KEY = 'prodash-settings'
@@ -39,7 +35,7 @@ function load(): Settings {
 		const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}') as Partial<Settings>
 		const merged = { ...DEFAULTS, ...saved }
 		// Keep the order valid if blocks are added or removed in a new version.
-		const known = BLOCKS.map((b) => b.id)
+		const known = BLOCKS
 		merged.order = [...merged.order.filter((id) => known.includes(id)), ...known.filter((id) => !merged.order.includes(id))]
 		return merged
 	} catch {

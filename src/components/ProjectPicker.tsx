@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api, type Project } from '../api'
+import { useT } from '../i18n'
 
 export function ProjectPicker({
 	current,
@@ -12,6 +13,7 @@ export function ProjectPicker({
 	onClose?: () => void
 	onUnauthorized: (e: unknown) => void
 }) {
+	const t = useT()
 	const [projects, setProjects] = useState<Project[] | null>(null)
 	const [error, setError] = useState<string | null>(null)
 	const [query, setQuery] = useState('')
@@ -31,23 +33,23 @@ export function ProjectPicker({
 
 	return (
 		<div className="overlay" onClick={onClose}>
-			<div className="sheet" role="dialog" aria-label="Elegir proyecto" onClick={(e) => e.stopPropagation()}>
+			<div className="sheet" role="dialog" aria-label={t.pickProject} onClick={(e) => e.stopPropagation()}>
 				<div className="sheet-head">
-					<h2>Elige un proyecto</h2>
+					<h2>{t.pickProject}</h2>
 					{onClose && (
 						<button className="button" onClick={onClose}>
-							Cerrar
+							{t.close}
 						</button>
 					)}
 				</div>
 				{error && <p className="form-error">{error}</p>}
-				{!projects && !error && <p className="muted">Cargando proyectos…</p>}
+				{!projects && !error && <p className="muted">{t.loadingProjects}</p>}
 				{projects && (
 					<>
 						{projects.length > 8 && (
 							<input
 								className="search"
-								placeholder="Buscar proyecto"
+								placeholder={t.searchProject}
 								value={query}
 								onChange={(e) => setQuery(e.target.value)}
 								autoFocus
@@ -65,12 +67,9 @@ export function ProjectPicker({
 								</button>
 							))}
 							{projects.length === 0 && (
-								<p className="muted">
-									Jira no devolvió ningún proyecto. La cuenta de JIRA_EMAIL necesita permiso para ver proyectos
-									(Browse projects) en este sitio de Jira.
-								</p>
+								<p className="muted">{t.noProjects}</p>
 							)}
-							{projects.length > 0 && visible?.length === 0 && <p className="muted">Ningún proyecto coincide.</p>}
+							{projects.length > 0 && visible?.length === 0 && <p className="muted">{t.noMatch}</p>}
 						</div>
 					</>
 				)}

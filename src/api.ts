@@ -41,10 +41,16 @@ export type Summary = {
 
 export class UnauthorizedError extends Error {}
 
+// The server answers its error messages in this language.
+let lang = 'es'
+export function setApiLang(value: string) {
+	lang = value
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
 	const res = await fetch(path, {
 		...init,
-		headers: { 'Content-Type': 'application/json', ...init?.headers },
+		headers: { 'Content-Type': 'application/json', 'X-Lang': lang, ...init?.headers },
 		credentials: 'same-origin',
 	})
 	if (res.status === 401 && path !== '/api/login') throw new UnauthorizedError()
@@ -69,6 +75,6 @@ export const api = {
 // Bugs/errors and epics are excluded unless the user changes it.
 export function defaultExcluded(types: IssueType[]): string[] {
 	return types
-		.filter((t) => t.hierarchyLevel >= 1 || /\b(bug|error|defect|defecto|epic|épica|epica)\b/i.test(t.name))
+		.filter((t) => t.hierarchyLevel >= 1 || /(?<!\p{L})(bug|error|defect|defecto|epic|épica|epica)(?!\p{L})/iu.test(t.name))
 		.map((t) => t.id)
 }

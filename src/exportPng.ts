@@ -4,7 +4,7 @@ export const REPORT_WIDTH = 1200
 
 // `node` is a copy of the report rendered off-screen at REPORT_WIDTH, so the
 // PNG looks the same whether it is made on a phone or on the Mac.
-export async function exportPng(node: HTMLElement, fileName: string) {
+export async function exportPng(node: HTMLElement, fileName: string, errorMessage: string) {
 	const blob = await toBlob(node, {
 		pixelRatio: 2,
 		width: REPORT_WIDTH,
@@ -12,7 +12,7 @@ export async function exportPng(node: HTMLElement, fileName: string) {
 		backgroundColor: getComputedStyle(node).backgroundColor,
 		filter: (n) => !(n instanceof HTMLElement && n.dataset.noExport != null),
 	})
-	if (!blob) throw new Error('No se pudo generar la imagen')
+	if (!blob) throw new Error(errorMessage)
 	const file = new File([blob], fileName, { type: 'image/png' })
 	const touch = matchMedia('(pointer: coarse)').matches
 	if (touch && navigator.canShare?.({ files: [file] })) {

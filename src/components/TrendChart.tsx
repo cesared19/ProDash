@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import type { Summary } from '../api'
 import { shortDate } from '../format'
+import { useT } from '../i18n'
 
 const HEIGHT = 260
 const PAD = { top: 20, right: 20, bottom: 36, left: 44 }
@@ -26,17 +27,18 @@ function useWidth() {
 }
 
 export function TrendChart({ summary }: { summary: Summary }) {
+	const t = useT()
 	const [ref, width] = useWidth()
 	const [hover, setHover] = useState<number | null>(null)
-	const { history, trajectory: t } = summary
-	if (history.length < 2) return <p className="empty">Todavía no hay historia suficiente.</p>
+	const { history, trajectory: tr } = summary
+	if (history.length < 2) return <p className="empty">{t.noHistory}</p>
 
 	const start = Date.parse(history[0].date)
 	const now = Date.parse(history[history.length - 1].date)
-	const eta = t.etaDate && t.remaining > 0 ? Date.parse(t.etaDate) : null
+	const eta = tr.etaDate && tr.remaining > 0 ? Date.parse(tr.etaDate) : null
 	// Keep the projection readable: show at most twice the history span ahead.
 	const end = eta ? Math.min(eta, now + Math.max(now - start, 28 * 864e5) * 2) : now
-	const projectedAtEnd = eta ? t.remaining * (1 - (end - now) / (eta - now)) : 0
+	const projectedAtEnd = eta ? tr.remaining * (1 - (end - now) / (eta - now)) : 0
 
 	const yMax = niceMax(Math.max(...history.map((h) => h.open), 1) * 1.05)
 	const innerW = width - PAD.left - PAD.right
@@ -66,16 +68,16 @@ export function TrendChart({ summary }: { summary: Summary }) {
 		<div className="chart" ref={ref}>
 			<div className="chart-legend">
 				<span>
-					<i className="legend-line" /> Tickets abiertos
+					<i className="legend-line" /> {t.openTickets}
 				</span>
 				{eta && (
 					<span>
-						<i className="legend-line dashed" /> Proyección
+						<i className="legend-line dashed" /> {t.projection}
 					</span>
 				)}
 			</div>
 			<div className="chart-area">
-				<svg width={width} height={HEIGHT} viewBox={`0 0 ${width} ${HEIGHT}`} role="img" aria-label="Evolución de tickets abiertos y proyección de cierre">
+				<svg width={width} height={HEIGHT} viewBox={`0 0 ${width} ${HEIGHT}`} role="img" aria-label={t.chartLabel}>
 					{ticks.map((v) => (
 						<g key={v}>
 							<line className="grid" x1={PAD.left} x2={width - PAD.right} y1={y(v)} y2={y(v)} />
@@ -89,20 +91,20 @@ export function TrendChart({ summary }: { summary: Summary }) {
 					{eta && (
 						<path
 							className="series-line dashed"
-							d={`M${x(now)},${y(t.remaining)}L${x(end)},${y(projectedAtEnd)}`}
+							d={`M${x(now)},${y(tr.remaining)}L${x(end)},${y(projectedAtEnd)}`}
 						/>
 					)}
 					<line className="today" x1={x(now)} x2={x(now)} y1={PAD.top} y2={y(0)} />
-					<circle className="series-dot" cx={x(now)} cy={y(t.remaining)} r={5} />
+					<circle className="series-dot" cx={x(now)} cy={y(tr.remaining)} r={5} />
 					<text className="axis" x={x(start)} y={HEIGHT - 10} textAnchor="start">
-						{shortDate(history[0].date)}
+						{shortDate(t, history[0].date)}
 					</text>
 					<text className="axis strong" x={x(now)} y={HEIGHT - 10} textAnchor={eta ? 'middle' : 'end'}>
-						Hoy
+						{t.today}
 					</text>
 					{eta && (
 						<text className="axis strong" x={x(end)} y={HEIGHT - 10} textAnchor="end">
-							{end === eta ? `Meta ${shortDate(t.etaDate!)}` : `${shortDate(new Date(end).toISOString())} →`}
+							{end === eta ? t.goal(shortDate(t, tr.etaDate!)) : `${shortDate(t, new Date(end).toISOString())} →`}
 						</text>
 					)}
 					{hp && (
@@ -124,8 +126,8 @@ export function TrendChart({ summary }: { summary: Summary }) {
 				</svg>
 				{hp && (
 					<div className="tooltip" data-no-export style={{ left: tipLeft, top: Math.max(y(hp.open) - 56, 0) }}>
-						<strong>{hp.open}</strong> abiertos
-						<span>{shortDate(new Date(hp.time).toISOString())}</span>
+						<strong>{hp.open}</strong> {t.openCount}
+						<span>{shortDate(t, new Date(hp.time).toISOString())}</span>
 					</div>
 				)}
 			</div>

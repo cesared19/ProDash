@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, defaultExcluded, type IssueType, type Summary } from '../api'
 import { longDate, periodLabel } from '../format'
+import { useT } from '../i18n'
 import { exportPng, REPORT_WIDTH } from '../exportPng'
 import type { BlockId, Period, Settings } from '../settings'
 import { ClosedBlock, EtaBlock, OpenBlock, StatusesBlock, TimesBlock, TrajectoryBlock } from './Blocks'
@@ -8,13 +9,7 @@ import { CustomizePanel } from './CustomizePanel'
 import { ChevronDownIcon, ImageIcon, LogoutIcon, RefreshIcon, SlidersIcon } from './icons'
 import { ProjectPicker } from './ProjectPicker'
 
-const PERIODS: { value: Period; label: string }[] = [
-	{ value: 30, label: '30 días' },
-	{ value: 90, label: '90 días' },
-	{ value: 180, label: '6 meses' },
-	{ value: 365, label: '1 año' },
-	{ value: 'all', label: 'Todo' },
-]
+const PERIODS: Period[] = [30, 90, 180, 365, 'all']
 
 const BLOCK_VIEWS: Record<BlockId, { Component: (p: { summary: Summary }) => JSX.Element; size: string }> = {
 	open: { Component: OpenBlock, size: 'small' },
@@ -40,6 +35,7 @@ export function Dashboard({
 	onLogout: () => void
 	mock: boolean
 }) {
+	const t = useT()
 	const key = settings.projectKey
 	const [projectName, setProjectName] = useState<string | null>(null)
 	const [issueTypes, setIssueTypes] = useState<IssueType[] | null>(null)
@@ -97,7 +93,7 @@ export function Dashboard({
 			try {
 				if (!exportRef.current) return
 				const date = summary.generatedAt.slice(0, 10)
-				await exportPng(exportRef.current, `reporte-${summary.projectKey}-${date}.png`)
+				await exportPng(exportRef.current, `${t.fileName}-${summary.projectKey}-${date}.png`, t.pngError)
 			} catch (e) {
 				if (!cancelled) setError((e as Error).message)
 			} finally {
@@ -108,7 +104,7 @@ export function Dashboard({
 			cancelled = true
 			clearTimeout(timer)
 		}
-	}, [exporting, summary])
+	}, [exporting, summary, t])
 
 	if (!key) {
 		return <ProjectPicker current={null} onPick={(k) => update({ projectKey: k })} onUnauthorized={onUnauthorized} />
@@ -123,11 +119,11 @@ export function Dashboard({
 				<div className="report-head">
 					<h1>{projectName ?? key}</h1>
 					<p>
-						{summary ? `Reporte del ${longDate(summary.generatedAt)} · cerrados: ${periodLabel(summary.periodDays)}` : ' '}
-						{excludedNames.length > 0 && <> · sin contar: {excludedNames.join(', ')}</>}
+						{summary ? t.reportLine(longDate(t, summary.generatedAt), periodLabel(t, summary.periodDays)) : ' '}
+						{excludedNames.length > 0 && t.excluding(excludedNames.join(', '))}
 					</p>
 				</div>
-				{!summary && !error && <div className="loading">Cargando datos de Jira…</div>}
+				{!summary && !error && <div className="loading">{t.loadingData}</div>}
 				{summary && (
 					<div className="blocks">
 						{visibleBlocks.map((id) => {
@@ -138,11 +134,11 @@ export function Dashboard({
 								</div>
 							)
 						})}
-						{visibleBlocks.length === 0 && <p className="empty">Todos los bloques están ocultos. Usa Personalizar.</p>}
+						{visibleBlocks.length === 0 && <p className="empty">{t.allHidden}</p>}
 					</div>
 				)}
 				{summary?.truncated && (
-					<p className="note">Hay más de 5.000 tickets; los números consideran solo los primeros 5.000.</p>
+					<p className="note">{t.truncated}</p>
 				)}
 			</div>
 		)
@@ -151,43 +147,43 @@ export function Dashboard({
 	return (
 		<div className="page">
 			<header className="toolbar">
-				<button className="project-button" onClick={() => setPicking(true)} aria-label="Cambiar proyecto">
+				<button className="project-button" onClick={() => setPicking(true)} aria-label={t.changeProject}>
 					<span className="project-button-name">{projectName ?? key}</span>
 					<ChevronDownIcon />
 				</button>
-				<div className="segmented" role="radiogroup" aria-label="Periodo">
+				<div className="segmented" role="radiogroup" aria-label={t.period}>
 					{PERIODS.map((p) => (
 						<button
-							key={p.value}
+							key={p}
 							role="radio"
-							aria-checked={settings.period === p.value}
-							className={settings.period === p.value ? 'active' : ''}
-							onClick={() => update({ period: p.value })}
+							aria-checked={settings.period === p}
+							className={settings.period === p ? 'active' : ''}
+							onClick={() => update({ period: p })}
 						>
-							{p.label}
+							{t.periods[p]}
 						</button>
 					))}
 				</div>
 				<div className="actions">
-					<button className="button" onClick={load} disabled={loading} aria-label="Actualizar">
+					<button className="button" onClick={load} disabled={loading} aria-label={t.refresh}>
 						<RefreshIcon className={loading ? 'spin' : ''} />
-						<span className="button-text">Actualizar</span>
+						<span className="button-text">{t.refresh}</span>
 					</button>
-					<button className="button" onClick={() => setCustomizing(true)} aria-label="Personalizar">
+					<button className="button" onClick={() => setCustomizing(true)} aria-label={t.customize}>
 						<SlidersIcon />
-						<span className="button-text">Personalizar</span>
+						<span className="button-text">{t.customize}</span>
 					</button>
 					<button className="button primary" onClick={() => setExporting(true)} disabled={!summary || exporting}>
 						<ImageIcon />
-						<span>{exporting ? 'Creando…' : 'Descargar PNG'}</span>
+						<span>{exporting ? t.creating : t.downloadPng}</span>
 					</button>
-					<button className="icon-button" onClick={onLogout} aria-label="Salir" title="Salir">
+					<button className="icon-button" onClick={onLogout} aria-label={t.logout} title={t.logout}>
 						<LogoutIcon />
 					</button>
 				</div>
 			</header>
 
-			{mock && <p className="banner">Modo demo: los datos son de ejemplo.</p>}
+			{mock && <p className="banner">{t.demo}</p>}
 			{error && (
 				<p className="banner error" role="alert">
 					{error}

@@ -1,8 +1,10 @@
 import { useState } from 'react'
 import { api } from '../api'
+import { LANGS, useT, type Lang } from '../i18n'
 import { GridIcon } from './icons'
 
-export function Login({ onLogin }: { onLogin: () => void }) {
+export function Login({ onLogin, lang, setLang }: { onLogin: () => void; lang: Lang; setLang: (lang: Lang) => void }) {
+	const t = useT()
 	const [password, setPassword] = useState('')
 	const [error, setError] = useState<string | null>(null)
 	const [busy, setBusy] = useState(false)
@@ -28,7 +30,7 @@ export function Login({ onLogin }: { onLogin: () => void }) {
 					<GridIcon />
 				</span>
 				<h1>ProDash</h1>
-				<label htmlFor="password">Contraseña</label>
+				<label htmlFor="password">{t.password}</label>
 				<input
 					id="password"
 					type="password"
@@ -43,8 +45,22 @@ export function Login({ onLogin }: { onLogin: () => void }) {
 					</p>
 				)}
 				<button className="button primary big" disabled={busy || !password}>
-					{busy ? 'Entrando…' : 'Entrar'}
+					{busy ? t.entering : t.enter}
 				</button>
+				<div className="segmented lang-switch" role="radiogroup" aria-label="Idioma / Language">
+					{LANGS.map((l) => (
+						<button
+							key={l.value}
+							type="button"
+							role="radio"
+							aria-checked={lang === l.value}
+							className={lang === l.value ? 'active' : ''}
+							onClick={() => setLang(l.value)}
+						>
+							{l.label}
+						</button>
+					))}
+				</div>
 			</form>
 		</main>
 	)
