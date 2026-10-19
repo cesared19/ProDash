@@ -56,6 +56,8 @@ Si macOS pregunta si permite conexiones entrantes para `node`, acepta para que e
 
 ## Problemas frecuentes
 
+**Diagnóstico rápido.** En la carpeta de ProDash ejecuta `npm run check`: revisa `.env`, prueba la conexión con Jira e indica qué corregir, sin mostrar el token.
+
 **"Elige un proyecto" aparece vacío o dice que Jira no aceptó las credenciales.** Si las credenciales no son válidas, Jira Cloud no da error: responde como a un visitante anónimo, que no ve proyectos. Revisa `.env`:
 
 - `JIRA_BASE_URL` es la dirección que ves en el navegador al abrir Jira, solo hasta `.atlassian.net` (por ejemplo `https://tu-empresa.atlassian.net`, sin `/jira/...` al final).
