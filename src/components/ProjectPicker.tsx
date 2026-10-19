@@ -64,7 +64,13 @@ export function ProjectPicker({
 									<span className="project-name">{p.name}</span>
 								</button>
 							))}
-							{visible?.length === 0 && <p className="muted">Ningún proyecto coincide.</p>}
+							{projects.length === 0 && (
+								<p className="muted">
+									Jira no devolvió ningún proyecto. La cuenta de JIRA_EMAIL necesita permiso para ver proyectos
+									(Browse projects) en este sitio de Jira.
+								</p>
+							)}
+							{projects.length > 0 && visible?.length === 0 && <p className="muted">Ningún proyecto coincide.</p>}
 						</div>
 					</>
 				)}

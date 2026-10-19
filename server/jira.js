@@ -35,6 +35,12 @@ export function createJiraClient({ baseUrl, email, token }) {
 	}
 
 	return {
+		// Jira Cloud treats bad credentials as an anonymous visitor instead of
+		// failing, so an empty project list is checked against /myself.
+		async myself() {
+			return request('GET', '/rest/api/3/myself')
+		},
+
 		async projects() {
 			const projects = []
 			let startAt = 0

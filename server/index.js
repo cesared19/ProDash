@@ -97,7 +97,21 @@ function projectKey(req, res) {
 
 app.get('/api/projects', async (_req, res, next) => {
 	try {
-		res.json(await jira.projects())
+		const projects = await jira.projects()
+		if (projects.length === 0) {
+			try {
+				await jira.myself()
+			} catch (e) {
+				if (e instanceof JiraError && e.status === 401) {
+					return res.status(502).json({
+						error:
+							'Jira no aceptó las credenciales y respondió como visitante anónimo. Revisa en .env que JIRA_EMAIL sea el email de la cuenta que creó el token, que JIRA_API_TOKEN esté completo y que JIRA_BASE_URL sea tu sitio (https://tu-empresa.atlassian.net). Después reinicia ProDash.',
+					})
+				}
+				throw e
+			}
+		}
+		res.json(projects)
 	} catch (e) {
 		next(e)
 	}

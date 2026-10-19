@@ -64,6 +64,9 @@ function generate(projectKey) {
 
 export function createMockClient() {
 	return {
+		async myself() {
+			return { emailAddress: 'demo@example.com' }
+		},
 		async projects() {
 			return PROJECTS
 		},

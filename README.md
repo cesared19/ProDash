@@ -54,6 +54,17 @@ Si macOS pregunta si permite conexiones entrantes para `node`, acepta para que e
 - **Estado**: al día si los abiertos llevan menos que lo que tarda un ticket en cerrarse, atención hasta 1,5 veces y atrasado por encima.
 - Se consideran hasta 5.000 tickets abiertos y 5.000 cerrados.
 
+## Problemas frecuentes
+
+**"Elige un proyecto" aparece vacío o dice que Jira no aceptó las credenciales.** Si las credenciales no son válidas, Jira Cloud no da error: responde como a un visitante anónimo, que no ve proyectos. Revisa `.env`:
+
+- `JIRA_BASE_URL` es la dirección que ves en el navegador al abrir Jira, solo hasta `.atlassian.net` (por ejemplo `https://tu-empresa.atlassian.net`, sin `/jira/...` al final).
+- `JIRA_EMAIL` es el email de la cuenta de Atlassian que creó el token.
+- `JIRA_API_TOKEN` está completo, en una sola línea y sin espacios. Usa **Create API token** (el token sin scopes), no *Create API token with scopes*.
+- Tras cambiar `.env`, detén ProDash (`Ctrl + C`) y vuelve a iniciarlo.
+
+Si las credenciales son correctas y la lista sigue vacía, la cuenta no tiene permiso para ver proyectos (*Browse projects*) en ese sitio.
+
 ## Seguridad
 
 El token de Jira se queda en el Mac, en `.env` (no se sube a git). El navegador nunca lo ve: todas las consultas pasan por el pequeño servidor local, que pide la contraseña del dashboard. La sesión dura 30 días por dispositivo; cambiar la contraseña cierra todas las sesiones.
