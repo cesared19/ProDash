@@ -1,0 +1,12 @@
+{
+	"name": "ProDash",
+	"short_name": "ProDash",
+	"start_url": "/",
+	"display": "standalone",
+	"background_color": "#F1F5F9",
+	"theme_color": "#1E293B",
+	"icons": [
+		{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" },
+		{ "src": "/apple-touch-icon.png", "sizes": "180x180", "type": "image/png" }
+	]
+}

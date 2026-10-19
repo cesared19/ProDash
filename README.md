@@ -1,2 +1,72 @@
 # ProDash
-Quick Jira bot to show project progress. AI driven.
+
+Dashboard visual de un proyecto de Jira Cloud, con bloques grandes de color pensados para leerse de un vistazo y un botón para descargar el reporte en PNG.
+
+Muestra:
+
+- **Abiertos**: cuántos tickets siguen abiertos y en qué estado (sin contar errores/bugs ni épicas, configurable).
+- **Cerrados**: cuántos se cerraron en el periodo elegido (30 días, 90 días, 6 meses, 1 año o todo).
+- **Para cerrar todo**: cuánto falta al ritmo actual de cierre, con la fecha estimada.
+- **¿Cuánto tardan?**: el tiempo promedio que tarda un ticket en cerrarse comparado con el tiempo que llevan esperando los abiertos. El color indica si van **al día** (verde), si piden **atención** (ámbar) o si van **atrasados** (rojo).
+- **Trayectoria**: la evolución de los tickets abiertos y la proyección hasta cerrarlos.
+
+Se puede personalizar qué bloques se ven, su orden, qué tipos de ticket no se cuentan y activar el texto extra grande. Las preferencias se guardan en cada dispositivo.
+
+## Puesta en marcha en el Mac
+
+1. Instala [Node.js](https://nodejs.org) (versión LTS).
+2. Crea un token de API de Jira en https://id.atlassian.com/manage-profile/security/api-tokens.
+3. Haz doble clic en **`Iniciar ProDash.command`**. La primera vez crea el archivo `.env` y lo abre: completa la URL de Jira, tu email, el token y una contraseña para el dashboard, guárdalo y vuelve a hacer doble clic.
+   - Si macOS dice que no puede abrirlo, haz clic derecho → **Abrir** la primera vez.
+4. Se abre el navegador en http://localhost:3100. Entra con la contraseña y elige el proyecto.
+
+Desde la terminal es lo mismo:
+
+```sh
+cp .env.example .env   # y complétalo
+npm install
+npm run build
+npm start
+```
+
+Para probarlo sin Jira, pon `JIRA_MOCK=true` en `.env` (datos de ejemplo).
+
+## Verlo en el móvil y en otros equipos
+
+Al iniciar, la terminal muestra una dirección como `http://192.168.1.20:3100`. Ábrela en el móvil o en otro ordenador **conectado a la misma Wi‑Fi** que el Mac (el Mac tiene que estar encendido y con el dashboard en marcha).
+
+- **iPhone/iPad**: en Safari, botón Compartir → *Añadir a pantalla de inicio*.
+- **Android**: en Chrome, menú ⋮ → *Añadir a pantalla de inicio*.
+- **Mac**: en Safari, Archivo → *Añadir al Dock*.
+
+Si macOS pregunta si permite conexiones entrantes para `node`, acepta para que el móvil pueda conectarse.
+
+## Reporte en PNG
+
+**Descargar PNG** genera una imagen del dashboard (siempre a 1200 px de ancho, igual desde cualquier dispositivo) con el nombre del proyecto, la fecha y el periodo. Respeta los bloques visibles y su orden.
+
+## Cómo se calcula
+
+- **Cerrado** = cualquier estado de la categoría *Done* de Jira. La fecha de cierre es la resolución o, si no la hay, el último cambio de categoría.
+- **Ritmo de cierre** = cerrados en el periodo ÷ semanas del periodo. **Para cerrar todo** = abiertos ÷ ritmo de cierre. Es una aproximación: no tiene en cuenta los tickets nuevos que lleguen (si llegan más de los que se cierran, el dashboard lo avisa).
+- **Un ticket tarda** = promedio de días entre creación y cierre de los cerrados en el periodo. **Los abiertos llevan** = promedio de días desde la creación de los abiertos.
+- **Estado**: al día si los abiertos llevan menos que lo que tarda un ticket en cerrarse, atención hasta 1,5 veces y atrasado por encima.
+- Se consideran hasta 5.000 tickets abiertos y 5.000 cerrados.
+
+## Seguridad
+
+El token de Jira se queda en el Mac, en `.env` (no se sube a git). El navegador nunca lo ve: todas las consultas pasan por el pequeño servidor local, que pide la contraseña del dashboard. La sesión dura 30 días por dispositivo; cambiar la contraseña cierra todas las sesiones.
+
+## Desarrollo
+
+```sh
+npm run dev    # servidor en :3100 y Vite con recarga en :5173
+npm test       # tests de los cálculos
+```
+
+- `server/` — Express: sesión, proxy a la API REST v3 de Jira (`/search/jql`) y cálculo de métricas (`metrics.js`).
+- `src/` — React + Vite. Bloques en `components/Blocks.tsx`, gráfica en `components/TrendChart.tsx`, exportación en `exportPng.ts`.
+
+## Licencia
+
+Apache 2.0, ver [LICENSE](LICENSE).
