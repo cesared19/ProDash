@@ -33,6 +33,39 @@ npm start
 
 Para probarlo sin Jira, pon `JIRA_MOCK=true` en `.env` (datos de ejemplo).
 
+## Servidor con Docker
+
+En el servidor, con Docker y git instalados:
+
+```sh
+git clone https://github.com/cesared19/ProDash
+cd ProDash
+cp .env.example .env      # y complétalo
+git checkout v1.0.1       # la versión a instalar (ver Releases en GitHub)
+docker compose up -d --build
+```
+
+ProDash queda en `http://IP-del-servidor:3100` (o en el `PORT` de `.env`) y se reinicia solo si el servidor se reinicia. Para ver los mensajes: `docker compose logs -f`.
+
+**Actualizar a una versión nueva** (las novedades de cada una están en [Releases](https://github.com/cesared19/ProDash/releases) y en `CHANGELOG.md`):
+
+```sh
+cd ProDash
+git fetch --tags
+git checkout v1.1.0
+docker compose up -d --build
+```
+
+**Volver a la versión anterior** si algo falla: lo mismo con la etiqueta anterior (`git checkout v1.0.1` y `docker compose up -d --build`). El `.env` no cambia entre versiones.
+
+La versión instalada se ve en la pantalla de entrada y en Personalizar.
+
+## Versiones y cambios
+
+- `main` es lo que está publicado. Cada versión se prepara en una rama `release/X.Y.Z` y llega a `main` con un PR.
+- Cada PR pasa una revisión automática (tests, build e imagen Docker).
+- Al fusionar el PR, GitHub crea la etiqueta `vX.Y.Z` y la release con las novedades de `CHANGELOG.md`.
+
 ## Verlo en el móvil y en otros equipos
 
 Al iniciar, la terminal muestra una dirección como `http://192.168.1.20:3100`. Ábrela en el móvil o en otro ordenador **conectado a la misma Wi‑Fi** que el Mac (el Mac tiene que estar encendido y con el dashboard en marcha).

@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
-import { api, setApiLang, UnauthorizedError } from './api'
+import { api, setApiLang, UnauthorizedError, type Session } from './api'
 import { Dashboard } from './components/Dashboard'
 import { Login } from './components/Login'
 import { LangContext, MESSAGES } from './i18n'
 import { useSettings } from './settings'
 
 export function App() {
-	const [session, setSession] = useState<{ authenticated: boolean; mock: boolean } | null>(null)
+	const [session, setSession] = useState<Session | null>(null)
 	const [settings, update] = useSettings()
 	const t = MESSAGES[settings.lang] ?? MESSAGES.es
 	setApiLang(settings.lang)
@@ -24,7 +24,7 @@ export function App() {
 	}, [settings.lang])
 
 	const onUnauthorized = useCallback((e: unknown) => {
-		if (e instanceof UnauthorizedError) setSession((s) => ({ authenticated: false, mock: s?.mock ?? false }))
+		if (e instanceof UnauthorizedError) setSession((s) => ({ ...s, authenticated: false, mock: s?.mock ?? false }))
 	}, [])
 
 	let content
@@ -35,6 +35,7 @@ export function App() {
 				onLogin={() => api.session().then(setSession)}
 				lang={settings.lang}
 				setLang={(lang) => update({ lang })}
+				version={session.version}
 			/>
 		)
 	else
@@ -43,6 +44,7 @@ export function App() {
 				settings={settings}
 				update={update}
 				mock={session.mock}
+				version={session.version}
 				onUnauthorized={onUnauthorized}
 				onLogout={() => api.logout().finally(() => setSession({ ...session, authenticated: false }))}
 			/>

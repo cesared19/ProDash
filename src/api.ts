@@ -54,6 +54,8 @@ export type Summary = {
 	truncated: boolean
 }
 
+export type Session = { authenticated: boolean; mock: boolean; version?: string }
+
 export class UnauthorizedError extends Error {}
 
 // The server answers its error messages in this language.
@@ -75,7 +77,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export const api = {
-	session: () => request<{ authenticated: boolean; mock: boolean }>('/api/session'),
+	session: () => request<Session>('/api/session'),
 	login: (password: string) =>
 		request<{ ok: true }>('/api/login', { method: 'POST', body: JSON.stringify({ password }) }),
 	logout: () => request<{ ok: true }>('/api/logout', { method: 'POST' }),
