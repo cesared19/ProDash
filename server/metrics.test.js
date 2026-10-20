@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { buildSummary, normalizeIssue } from './metrics.js'
+import { applyDueDates, buildSummary, normalizeIssue } from './metrics.js'
 
 const DAY = 24 * 60 * 60 * 1000
 const now = Date.parse('2026-10-19T12:00:00Z')
@@ -100,4 +100,40 @@ test('groups issues by epic, subtasks under their parent epic, the rest last', (
 		s.epics[0].issues.map((i) => i.key),
 		['X-1', 'X-2', 'X-4'],
 	)
+})
+
+test('estimates each epic at its own pace and compares it with the due date', () => {
+	const DAY_MS = 24 * 60 * 60 * 1000
+	const epic = (key) => ({ key, fields: { summary: key, issuetype: { hierarchyLevel: 1 }, status: { name: 'En curso', statusCategory: { key: 'indeterminate' } } } })
+	const make = (key, category, parent, closed) =>
+		normalizeIssue({
+			key,
+			fields: {
+				status: { name: category === 'done' ? 'Hecho' : 'En curso', statusCategory: { key: category } },
+				created: ago(40),
+				resolutiondate: closed != null ? ago(closed) : null,
+				parent,
+			},
+		})
+	// X-E1: 2 open, 2 closed in 28 days → 0.5/week → 4 weeks to close.
+	const open = [make('A', 'new', epic('X-E1')), make('B', 'new', epic('X-E1')), make('C', 'new', epic('X-E2')), make('D', 'new', epic('X-E3'))]
+	const closed = [make('E', 'done', epic('X-E1'), 5), make('F', 'done', epic('X-E1'), 10), make('G', 'done', epic('X-E3'), 3)]
+	const s = buildSummary({ open, closed, days: 28, now })
+	const e1 = s.epics.find((e) => e.key === 'X-E1')
+	assert.equal(e1.closeRatePerWeek, 0.5)
+	assert.equal(e1.etaWeeks, 4)
+
+	const iso = (days) => new Date(now + days * DAY_MS).toISOString().slice(0, 10)
+	const due = new Map([
+		['X-E1', iso(40)], // closes in ~28 days → on track
+		['X-E2', iso(10)], // nothing closed → cannot tell
+		['X-E3', iso(-2)], // already past
+	])
+	const byKey = Object.fromEntries(applyDueDates(s.epics, due, now).map((e) => [e.key, e]))
+	assert.equal(byKey['X-E1'].delivery, 'onTrack')
+	assert.equal(byKey['X-E1'].dueDate, iso(40))
+	assert.equal(byKey['X-E2'].delivery, 'unknown')
+	assert.equal(byKey['X-E3'].delivery, 'overdue')
+	assert.equal(applyDueDates(s.epics, new Map([['X-E1', iso(7)]]), now).find((e) => e.key === 'X-E1').delivery, 'late')
+	assert.equal(byKey.null?.delivery ?? 'noDate', 'noDate')
 })

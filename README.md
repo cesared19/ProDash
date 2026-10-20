@@ -10,6 +10,7 @@ Muestra:
 - **¿Cuánto tardan?**: el tiempo promedio que tarda un ticket en cerrarse comparado con el tiempo que llevan esperando los abiertos. El color indica si van **al día** (verde), si piden **atención** (ámbar) o si van **atrasados** (rojo).
 - **Trayectoria**: la evolución de los tickets abiertos y la proyección hasta cerrarlos.
 - **Por epic**: cada epic con sus tickets abiertos y los cerrados en el periodo, y una barra por estado. Al tocarla se despliegan sus tickets con enlace a Jira. Las subtareas cuentan en la epic de su ticket padre; los tickets sin epic van en el grupo *Sin epic*.
+  Con el selector **Ritmo | Entrega** se ve cuánto falta para cerrar cada epic a su ritmo de cierre, o cuánto falta para su fecha de entrega (*Due date* de la epic en Jira), con una etiqueta que indica si llega a tiempo.
 
 Se puede personalizar qué bloques se ven, su orden, qué tipos de ticket no se cuentan, el idioma (español o inglés) y activar el texto extra grande. Las preferencias se guardan en cada dispositivo; el idioma inicial es el del navegador y también se puede cambiar en la pantalla de entrada. Los nombres de estados y tipos de ticket se muestran tal como están en Jira.
 

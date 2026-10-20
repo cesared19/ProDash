@@ -2,6 +2,15 @@
 
 Todos los cambios de ProDash por versión. El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y las versiones, [versionado semántico](https://semver.org/lang/es/).
 
+## [1.1.0] - 2026-10-20
+
+### Agregado
+- En el bloque **Por epic**, un selector **Ritmo | Entrega**:
+  - **Ritmo**: cuánto falta para cerrar cada epic al ritmo de cierre del periodo, y la fecha estimada.
+  - **Entrega**: cuánto falta para la fecha de entrega (*Due date*) de cada epic en Jira, o cuánto hace que venció.
+- Etiqueta por epic que compara las dos: **A tiempo**, **No llega**, **Vencida** o **Sin datos**.
+- La vista elegida se recuerda en cada dispositivo y se respeta en el PNG.
+
 ## [1.0.1] - 2026-10-20
 
 ### Agregado
@@ -20,5 +29,6 @@ Primera versión, la que corre en el servidor de la empresa.
 - Contraseña compartida; el token de Jira queda en el servidor.
 - `npm run check` para diagnosticar la conexión con Jira.
 
+[1.1.0]: https://github.com/cesared19/ProDash/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/cesared19/ProDash/compare/v1.0.0...v1.0.1
 [1.0.0]: https://github.com/cesared19/ProDash/releases/tag/v1.0.0

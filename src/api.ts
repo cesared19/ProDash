@@ -15,6 +15,8 @@ export type StatusCount = {
 
 export type Health = 'good' | 'warning' | 'bad' | 'unknown'
 
+export type Delivery = 'done' | 'onTrack' | 'late' | 'overdue' | 'unknown' | 'noDate'
+
 export type EpicGroup = {
 	// null groups the tickets without an epic.
 	key: string | null
@@ -23,6 +25,12 @@ export type EpicGroup = {
 	category: StatusCount['category'] | null
 	open: number
 	closed: number
+	closeRatePerWeek: number
+	etaWeeks: number | null
+	etaDate: string | null
+	// Jira due date of the epic, "YYYY-MM-DD".
+	dueDate: string | null
+	delivery: Delivery
 	byStatus: StatusCount[]
 	issueCount: number
 	issues: { key: string; summary: string; status: string; category: StatusCount['category'] }[]

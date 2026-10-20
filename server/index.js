@@ -7,7 +7,7 @@ import express from 'express'
 import { loadEnvFile, readConfig } from './env.js'
 import { createJiraClient, JiraError } from './jira.js'
 import { createMockClient } from './mock.js'
-import { buildSummary, normalizeIssue } from './metrics.js'
+import { applyDueDates, buildSummary, normalizeIssue } from './metrics.js'
 import { messages } from './messages.js'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
@@ -126,6 +126,26 @@ app.get('/api/projects/:key/issue-types', async (req, res, next) => {
 	}
 })
 
+const ISSUE_KEY = /^[A-Z][A-Z0-9_]*-\d+$/
+
+// The parent field on child issues has no due date, so the epics are read
+// separately. Without due dates the dashboard still works, so errors are
+// logged and ignored.
+async function epicDueDates(epics) {
+	const keys = epics.map((e) => e.key).filter((k) => k && ISSUE_KEY.test(k))
+	const dueByKey = new Map()
+	try {
+		for (let i = 0; i < keys.length; i += 100) {
+			const chunk = keys.slice(i, i + 100)
+			const { issues } = await jira.search(`key in (${chunk.join(',')})`, ['duedate'], chunk.length)
+			for (const issue of issues) if (issue.fields?.duedate) dueByKey.set(issue.key, issue.fields.duedate)
+		}
+	} catch (e) {
+		console.error(`[jira] No se pudieron leer las fechas de entrega de las epics: ${e.message}`)
+	}
+	return dueByKey
+}
+
 app.get('/api/projects/:key/summary', async (req, res, next) => {
 	const key = projectKey(req, res)
 	if (!key) return
@@ -149,6 +169,7 @@ app.get('/api/projects/:key/summary', async (req, res, next) => {
 			closed: closed.issues.map(normalizeIssue),
 			days,
 		})
+		summary.epics = applyDueDates(summary.epics, await epicDueDates(summary.epics), Date.now())
 		res.json({
 			...summary,
 			projectKey: key,

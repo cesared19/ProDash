@@ -875,6 +875,50 @@ input[type='password'],
 
 /* ---------- Epics ---------- */
 
+.epic-view {
+	margin: -4px 0 12px;
+}
+
+.epic-view button {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.epic-time {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	justify-content: space-between;
+	gap: 8px 12px;
+	margin: 10px 0 0 calc(1.5rem + 12px);
+	font-size: 1.0625rem;
+}
+
+.epic-time-text {
+	display: inline-flex;
+	flex-wrap: nowrap;
+	white-space: nowrap;
+	align-items: center;
+	gap: 4px 8px;
+}
+
+.epic-time-text svg {
+	color: var(--muted);
+}
+
+.delivery-badge {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 12px;
+	border-radius: 999px;
+	color: #fff;
+	font-weight: 700;
+	font-size: 0.95rem;
+	white-space: nowrap;
+}
+
 .report.exporting .screen-only {
 	display: none;
 }
@@ -1025,8 +1069,13 @@ span.issue-key {
 		padding-left: calc(1.5rem + 12px);
 	}
 	.epic-bar,
+	.epic-time,
 	.epic-body {
 		margin-left: 0;
+	}
+	.epic-time-text {
+		flex-wrap: wrap;
+		white-space: normal;
 	}
 	.issue-row {
 		grid-template-columns: auto 1fr;

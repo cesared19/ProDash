@@ -12,7 +12,9 @@ import { ProjectPicker } from './ProjectPicker'
 
 const PERIODS: Period[] = [30, 90, 180, 365, 'all']
 
-const BLOCK_VIEWS: Record<BlockId, { Component: (p: { summary: Summary }) => JSX.Element; size: string }> = {
+type BlockProps = { summary: Summary; settings: Settings; update: (patch: Partial<Settings>) => void }
+
+const BLOCK_VIEWS: Record<BlockId, { Component: (p: BlockProps) => JSX.Element; size: string }> = {
 	open: { Component: OpenBlock, size: 'small' },
 	closed: { Component: ClosedBlock, size: 'small' },
 	eta: { Component: EtaBlock, size: 'small' },
@@ -134,7 +136,7 @@ export function Dashboard({
 							const { Component, size } = BLOCK_VIEWS[id]
 							return (
 								<div key={id} className={`block block-${size} block-${id}`}>
-									<Component summary={summary} />
+									<Component summary={summary} settings={settings} update={update} />
 								</div>
 							)
 						})}
