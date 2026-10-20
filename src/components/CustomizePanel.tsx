@@ -8,12 +8,14 @@ export function CustomizePanel({
 	update,
 	issueTypes,
 	excluded,
+	version,
 	onClose,
 }: {
 	settings: Settings
 	update: (patch: Partial<Settings>) => void
 	issueTypes: IssueType[] | null
 	excluded: string[]
+	version?: string
 	onClose: () => void
 }) {
 	const t = useT()
@@ -127,6 +129,7 @@ export function CustomizePanel({
 						</button>
 					</>
 				)}
+				{version && <p className="version">ProDash v{version}</p>}
 			</div>
 		</div>
 	)

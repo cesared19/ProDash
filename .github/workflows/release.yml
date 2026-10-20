@@ -1,0 +1,43 @@
+name: Release
+
+# Al fusionar en main, si la versión de package.json todavía no tiene release,
+# crea la etiqueta vX.Y.Z y la release con su sección de CHANGELOG.md.
+# También se puede lanzar a mano (Actions → Release → Run workflow) para una
+# versión y un commit concretos.
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Versión, por ejemplo 1.0.0 (vacío = la de package.json)
+        required: false
+      ref:
+        description: Commit completo para la etiqueta (vacío = el último de main)
+        required: false
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Crear etiqueta y release si faltan
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_VERSION: ${{ inputs.version }}
+          INPUT_REF: ${{ inputs.ref }}
+        run: |
+          set -euo pipefail
+          version="${INPUT_VERSION:-$(node -p "require('./package.json').version")}"
+          target="${INPUT_REF:-$GITHUB_SHA}"
+          tag="v$version"
+          if gh release view "$tag" >/dev/null 2>&1; then
+            echo "La release $tag ya existe; nada que hacer."
+            exit 0
+          fi
+          awk -v v="[$version]" 'index($0, "## " v) == 1 { found = 1; next } /^(## |\[[0-9])/ && found { exit } found' CHANGELOG.md > notes.md
+          [ -s notes.md ] || echo "ProDash $version" > notes.md
+          gh release create "$tag" --target "$target" --title "ProDash $version" --notes-file notes.md

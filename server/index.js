@@ -19,6 +19,7 @@ if (missing.length) {
 	process.exit(1)
 }
 
+const { version } = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'))
 const jira = config.mock ? createMockClient() : createJiraClient(config.jira)
 const MAX_ISSUES = 5000
 const COOKIE = 'jd_session'
@@ -58,7 +59,7 @@ app.disable('x-powered-by')
 app.use(express.json({ limit: '10kb' }))
 
 app.get('/api/session', (req, res) => {
-	res.json({ authenticated: sessionValid(req), mock: config.mock })
+	res.json({ authenticated: sessionValid(req), mock: config.mock, version })
 })
 
 app.post('/api/login', async (req, res) => {
@@ -194,7 +195,7 @@ app.listen(config.port, '0.0.0.0', () => {
 		.flat()
 		.filter((i) => i && i.family === 'IPv4' && !i.internal)
 		.map((i) => `http://${i.address}:${config.port}`)
-	console.log(`\nProDash${config.mock ? ' (modo demo)' : ''} listo:`)
+	console.log(`\nProDash ${version}${config.mock ? ' (modo demo)' : ''} listo:`)
 	console.log(`  En este Mac:  http://localhost:${config.port}`)
 	for (const url of lan) console.log(`  En el móvil:  ${url}  (misma Wi‑Fi)`)
 	console.log('')

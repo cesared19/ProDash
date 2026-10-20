@@ -3,7 +3,17 @@ import { api } from '../api'
 import { LANGS, useT, type Lang } from '../i18n'
 import { GridIcon } from './icons'
 
-export function Login({ onLogin, lang, setLang }: { onLogin: () => void; lang: Lang; setLang: (lang: Lang) => void }) {
+export function Login({
+	onLogin,
+	lang,
+	setLang,
+	version,
+}: {
+	onLogin: () => void
+	lang: Lang
+	setLang: (lang: Lang) => void
+	version?: string
+}) {
 	const t = useT()
 	const [password, setPassword] = useState('')
 	const [error, setError] = useState<string | null>(null)
@@ -61,6 +71,7 @@ export function Login({ onLogin, lang, setLang }: { onLogin: () => void; lang: L
 						</button>
 					))}
 				</div>
+				{version && <p className="version">ProDash v{version}</p>}
 			</form>
 		</main>
 	)

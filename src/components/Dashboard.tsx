@@ -30,12 +30,14 @@ export function Dashboard({
 	onUnauthorized,
 	onLogout,
 	mock,
+	version,
 }: {
 	settings: Settings
 	update: (patch: Partial<Settings>) => void
 	onUnauthorized: (e: unknown) => void
 	onLogout: () => void
 	mock: boolean
+	version?: string
 }) {
 	const t = useT()
 	const key = settings.projectKey
@@ -216,6 +218,7 @@ export function Dashboard({
 					update={update}
 					issueTypes={issueTypes}
 					excluded={excluded ?? []}
+					version={version}
 					onClose={() => setCustomizing(false)}
 				/>
 			)}

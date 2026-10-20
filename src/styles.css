@@ -698,6 +698,13 @@ svg {
 	height: 40px;
 }
 
+.version {
+	margin: 16px 0 0;
+	text-align: center;
+	color: var(--muted);
+	font-size: 0.875rem;
+}
+
 .lang-switch {
 	justify-self: center;
 	margin-top: 8px;

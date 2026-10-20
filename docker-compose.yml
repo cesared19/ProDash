@@ -1,0 +1,13 @@
+# Uso: docker compose up -d --build
+# La configuración (Jira, contraseña) se lee de .env, igual que sin Docker.
+services:
+  prodash:
+    build: .
+    image: prodash:local
+    env_file: .env
+    environment:
+      # Dentro del contenedor siempre escucha en 3100; PORT de .env elige el puerto del servidor.
+      PORT: 3100
+    ports:
+      - "${PORT:-3100}:3100"
+    restart: unless-stopped
