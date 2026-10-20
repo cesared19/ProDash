@@ -72,7 +72,7 @@ try {
 		}).then((r) => r.json())
 		if (projects.total > 0) ok(`La cuenta ve ${projects.total} proyecto(s)`)
 		else fail('La cuenta no ve ningún proyecto: pide a un administrador de Jira el permiso Browse projects.')
-	} else if (/captcha/i.test(denied)) {
+	} else if (/captcha|authentication_denied/i.test(`${denied} ${reason}`)) {
 		fail('Jira bloqueó la cuenta con un CAPTCHA por demasiados intentos fallidos. Cierra sesión en Jira, vuelve a entrar desde el navegador resolviendo el CAPTCHA y repite.')
 	} else if (res.status === 401) {
 		fail('Jira rechazó el email o el token.')
@@ -87,7 +87,26 @@ try {
      • Si todo es correcto, puede que tu empresa bloquee los tokens de API
        (Atlassian Guard). Pregúntale al administrador de Atlassian.${reason ? `\n     (Motivo indicado por Jira: ${reason})` : ''}`)
 	} else if (res.status === 403) {
-		fail(`Jira denegó el acceso (403). Puede que tu empresa bloquee los tokens de API; pregúntale al administrador de Atlassian.${denied ? ` (${denied})` : ''}`)
+		let detail = ''
+		try {
+			const data = await res.json()
+			detail = [...(data.errorMessages ?? []), ...Object.values(data.errors ?? {})].join(' ')
+		} catch {
+			// Not JSON.
+		}
+		fail(`Jira denegó el acceso (403).${detail ? ` Jira dice: ${detail}` : ''}${reason || denied ? ` [${[denied, reason].filter(Boolean).join('; ')}]` : ''}`)
+		console.log(`
+     Si ayer funcionaba, revisa en este orden:
+     • Entra a Jira en el navegador: si pide un CAPTCHA o volver a iniciar
+       sesión, hazlo y repite npm run check.
+     • ¿Estás en otra red o sin la VPN de tu empresa? Algunas empresas solo
+       permiten usar Jira (también por API) desde su red (Atlassian Guard,
+       lista de IP permitidas). Prueba conectado a la red o VPN de siempre.
+     • Que el token siga activo en
+       https://id.atlassian.com/manage-profile/security/api-tokens
+       (si no está o caducó, crea uno nuevo y ponlo en .env).
+     • Si nada de eso cambia, pregúntale al administrador de Atlassian si
+       se bloquearon los tokens de API.`)
 	} else {
 		fail(`Jira respondió ${res.status}`)
 	}

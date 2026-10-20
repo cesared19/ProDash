@@ -1,9 +1,15 @@
 export class JiraError extends Error {
-	// `detail` is Jira's own explanation, if it gave one.
-	constructor(status, detail) {
-		super(`Jira ${status}${detail ? `: ${detail}` : ''}`)
+	// `detail` is Jira's own explanation, if it gave one; `reason` comes from
+	// its authentication headers (for example a CAPTCHA lockout).
+	constructor(status, detail, reason = '') {
+		super(`Jira ${status}${detail ? `: ${detail}` : ''}${reason ? ` [${reason}]` : ''}`)
 		this.status = status
 		this.detail = detail
+		this.reason = reason
+	}
+
+	get captcha() {
+		return /captcha|authentication_denied/i.test(this.reason)
 	}
 }
 
@@ -24,13 +30,21 @@ export function createJiraClient({ baseUrl, email, token }) {
 		})
 		if (!res.ok) {
 			let detail = ''
+			const text = await res.text()
 			try {
-				const data = await res.json()
+				const data = JSON.parse(text)
 				detail = [...(data.errorMessages ?? []), ...Object.values(data.errors ?? {})].join(' ')
 			} catch {
-				// Not JSON; report the status only.
+				// Not JSON (often an HTML page); keep it out of the message.
 			}
-			throw new JiraError(res.status, detail)
+			const reason = [res.headers.get('x-authentication-denied-reason'), res.headers.get('x-seraph-loginreason')]
+				.filter(Boolean)
+				.join('; ')
+			const error = new JiraError(res.status, detail, reason)
+			if (res.status === 401 || res.status === 403) {
+				console.error(`[jira] ${method} ${path} → ${error.message}${detail ? '' : ` ${text.slice(0, 200).replace(/\s+/g, ' ')}`}`)
+			}
+			throw error
 		}
 		return res.json()
 	}

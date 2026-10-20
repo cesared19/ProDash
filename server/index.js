@@ -174,12 +174,15 @@ app.use((err, req, res, _next) => {
 	const m = messages(req)
 	if (err instanceof JiraError) {
 		const status = err.status === 401 || err.status === 403 ? 502 : err.status === 404 ? 404 : 502
-		const message =
-			err.status === 401
+		const message = err.captcha
+			? m.captcha
+			: err.status === 401
 				? m.rejected
-				: err.status === 404
-					? m.projectNotFound
-					: `${m.jiraStatus(err.status)}${err.detail ? `: ${err.detail}` : ''}`
+				: err.status === 403
+					? `${m.forbidden}${err.detail ? ` (Jira: ${err.detail})` : ''}`
+					: err.status === 404
+						? m.projectNotFound
+						: `${m.jiraStatus(err.status)}${err.detail ? `: ${err.detail}` : ''}`
 		return res.status(status).json({ error: message })
 	}
 	console.error(err)
