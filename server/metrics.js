@@ -36,8 +36,9 @@ const MAX_ISSUES_PER_EPIC = 200
  * Groups open issues and those closed in the period by epic. Subtasks take
  * the epic of their parent when the parent is among the loaded issues.
  * Issues without an epic go to a last group with key null.
+ * Each group gets its own pace: closed in the period ÷ `weeks`.
  */
-export function buildEpics(open, closedInPeriod) {
+export function buildEpics(open, closedInPeriod, { weeks = 1, now = Date.now() } = {}) {
 	const all = [...open, ...closedInPeriod]
 	const byKey = new Map(all.map((i) => [i.key, i]))
 	const groups = new Map()
@@ -65,6 +66,8 @@ export function buildEpics(open, closedInPeriod) {
 			const issues = g.issues.sort(
 				(a, b) => rank(a) - rank(b) || (b.closedAt ?? 0) - (a.closedAt ?? 0) || a.created - b.created,
 			)
+			const closeRatePerWeek = g.closed / weeks
+			const etaWeeks = g.open === 0 ? 0 : closeRatePerWeek > 0 ? g.open / closeRatePerWeek : null
 			return {
 				key: g.key,
 				name: g.name,
@@ -72,6 +75,11 @@ export function buildEpics(open, closedInPeriod) {
 				category: g.category,
 				open: g.open,
 				closed: g.closed,
+				closeRatePerWeek,
+				etaWeeks,
+				etaDate: etaWeeks != null ? new Date(now + etaWeeks * WEEK).toISOString() : null,
+				dueDate: null,
+				delivery: g.open === 0 ? 'done' : 'noDate',
 				byStatus: [...g.byStatus.values()].sort((a, b) => rank(a) - rank(b) || b.count - a.count),
 				issueCount: issues.length,
 				issues: issues.slice(0, MAX_ISSUES_PER_EPIC).map((i) => ({
@@ -174,6 +182,26 @@ export function buildSummary({ open, closed, days, now = Date.now() }) {
 			health,
 		},
 		history,
-		epics: buildEpics(open, closedInPeriod),
+		epics: buildEpics(open, closedInPeriod, { weeks, now }),
 	}
+}
+
+/**
+ * Adds each epic's Jira due date ("YYYY-MM-DD") and whether, at its pace,
+ * it closes by then: done, onTrack, late, overdue (date already passed),
+ * unknown (no closures to estimate from) or noDate.
+ */
+export function applyDueDates(epics, dueByKey, now = Date.now()) {
+	return epics.map((epic) => {
+		const dueDate = (epic.key && dueByKey.get(epic.key)) || null
+		let delivery = epic.delivery
+		if (epic.open > 0 && dueDate) {
+			// The due date counts until the end of that day.
+			const dueEnd = Date.parse(`${dueDate}T23:59:59`)
+			if (dueEnd < now) delivery = 'overdue'
+			else if (epic.etaDate == null) delivery = 'unknown'
+			else delivery = Date.parse(epic.etaDate) <= dueEnd ? 'onTrack' : 'late'
+		}
+		return { ...epic, dueDate, delivery }
+	})
 }

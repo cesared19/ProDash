@@ -7,6 +7,8 @@ export const BLOCKS: BlockId[] = ['open', 'closed', 'eta', 'statuses', 'times', 
 
 export type Period = 30 | 90 | 180 | 365 | 'all'
 
+export type EpicView = 'pace' | 'delivery'
+
 export type Settings = {
 	projectKey: string | null
 	period: Period
@@ -16,6 +18,7 @@ export type Settings = {
 	excluded: Record<string, string[]>
 	bigText: boolean
 	lang: Lang
+	epicView: EpicView
 }
 
 const DEFAULTS: Settings = {
@@ -26,6 +29,7 @@ const DEFAULTS: Settings = {
 	excluded: {},
 	bigText: false,
 	lang: browserLang(),
+	epicView: 'pace',
 }
 
 const STORAGE_KEY = 'prodash-settings'

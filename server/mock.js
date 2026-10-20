@@ -15,11 +15,15 @@ const TYPES = [
 	{ id: '10005', name: 'Epic', subtask: false, hierarchyLevel: 1 },
 ]
 
+// Epic keys are numbered after the issues, as in Jira (APP-901…).
+const EPIC_KEY_BASE = 900
+
+// dueInDays: due date relative to today (null = no due date).
 const EPICS = [
-	{ name: 'Registro y login', status: 'En curso', category: 'indeterminate' },
-	{ name: 'Pagos con tarjeta', status: 'En curso', category: 'indeterminate' },
-	{ name: 'Notificaciones', status: 'Por hacer', category: 'new' },
-	{ name: 'Rediseño del perfil', status: 'En curso', category: 'indeterminate' },
+	{ name: 'Registro y login', status: 'En curso', category: 'indeterminate', dueInDays: 120 },
+	{ name: 'Pagos con tarjeta', status: 'En curso', category: 'indeterminate', dueInDays: 21 },
+	{ name: 'Notificaciones', status: 'Por hacer', category: 'new', dueInDays: -3 },
+	{ name: 'Rediseño del perfil', status: 'En curso', category: 'indeterminate', dueInDays: null },
 ]
 
 const SUMMARIES = [
@@ -73,7 +77,7 @@ function generate(projectKey) {
 			? { key: `${projectKey}-${parentN}`, fields: { summary: '', issuetype: { hierarchyLevel: 0 } } }
 			: epicIndex < EPICS.length
 				? {
-						key: `${projectKey}-E${epicIndex + 1}`,
+						key: `${projectKey}-${EPIC_KEY_BASE + epicIndex + 1}`,
 						fields: {
 							summary: EPICS[epicIndex].name,
 							issuetype: { hierarchyLevel: 1 },
@@ -112,6 +116,16 @@ export function createMockClient() {
 		},
 		// Understands only the JQL shapes built in index.js.
 		async search(jql) {
+			const keys = jql.match(/^key in \(([^)]*)\)/)?.[1]?.split(',')
+			if (keys) {
+				const issues = keys.flatMap((k) => {
+					const epic = EPICS[Number(k.split('-')[1]) - EPIC_KEY_BASE - 1]
+					if (!epic) return []
+					const due = epic.dueInDays == null ? null : new Date(Date.now() + epic.dueInDays * DAY).toISOString().slice(0, 10)
+					return [{ key: k, fields: { duedate: due } }]
+				})
+				return { issues, truncated: false }
+			}
 			const key = jql.match(/project = "([^"]+)"/)?.[1] ?? 'APP'
 			const excluded = jql.match(/issuetype not in \(([^)]*)\)/)?.[1]?.split(',') ?? []
 			const wantDone = /statusCategory = Done/.test(jql)
