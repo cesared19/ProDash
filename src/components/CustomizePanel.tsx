@@ -1,4 +1,6 @@
-import type { IssueType } from '../api'
+import { useState } from 'react'
+import type { IssueType, StatusForecast } from '../api'
+import { durationText } from '../format'
 import { LANGS, useT } from '../i18n'
 import type { BlockId, Settings } from '../settings'
 import { ArrowDownIcon, ArrowUpIcon } from './icons'
@@ -8,6 +10,7 @@ export function CustomizePanel({
 	update,
 	issueTypes,
 	excluded,
+	statusForecast,
 	version,
 	onClose,
 }: {
@@ -15,6 +18,7 @@ export function CustomizePanel({
 	update: (patch: Partial<Settings>) => void
 	issueTypes: IssueType[] | null
 	excluded: string[]
+	statusForecast: StatusForecast | null
 	version?: string
 	onClose: () => void
 }) {
@@ -37,6 +41,19 @@ export function CustomizePanel({
 		if (!settings.projectKey) return
 		const next = excluded.includes(id) ? excluded.filter((e) => e !== id) : [...excluded, id]
 		update({ excluded: { ...settings.excluded, [settings.projectKey]: next } })
+	}
+
+	// Typed days apply when leaving the field, so each keystroke does not reload Jira data.
+	const [drafts, setDrafts] = useState<Record<string, string>>({})
+
+	function setStatusDays(status: string, value: string) {
+		const project = settings.projectKey
+		if (!project) return
+		const current = { ...(settings.statusDays[project] ?? {}) }
+		const days = Number(value)
+		if (value.trim() === '' || !Number.isFinite(days) || days < 0) delete current[status]
+		else current[status] = Math.min(days, 3650)
+		update({ statusDays: { ...settings.statusDays, [project]: current } })
 	}
 
 	function resetTypes() {
@@ -110,6 +127,44 @@ export function CustomizePanel({
 						</li>
 					))}
 				</ul>
+
+				{statusForecast && settings.projectKey && (
+					<>
+						<h3>{t.statusDaysTitle}</h3>
+						<p className="muted">{t.statusDaysHelp}</p>
+						<ul className="status-days">
+							{statusForecast.statuses.map((s) => {
+								const typed = settings.statusDays[settings.projectKey!]?.[s.name]
+								const source = s.source === 'history' ? t.statusDaysSource.history(String(s.samples)) : t.statusDaysSource[s.source]
+								return (
+									<li key={s.name}>
+										<label htmlFor={`days-${s.name}`}>
+											<strong>{s.name}</strong>
+											<span className="muted">
+												{durationText(t, s.typicalDays)} · {source}
+											</span>
+										</label>
+										<span className="days-input">
+											<input
+												id={`days-${s.name}`}
+												type="number"
+												inputMode="decimal"
+												min={0}
+												max={3650}
+												step="any"
+												placeholder={t.auto}
+												value={drafts[s.name] ?? (typed != null ? String(typed) : '')}
+												onChange={(e) => setDrafts({ ...drafts, [s.name]: e.target.value })}
+												onBlur={(e) => setStatusDays(s.name, e.target.value)}
+											/>
+											<span className="muted">{t.daysUnit}</span>
+										</span>
+									</li>
+								)
+							})}
+						</ul>
+					</>
+				)}
 
 				<h3>{t.typesTitle}</h3>
 				<p className="muted">{t.typesHelp}</p>

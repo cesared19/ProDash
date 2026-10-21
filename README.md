@@ -10,7 +10,7 @@ Muestra:
 - **¿Cuánto tardan?**: el tiempo promedio que tarda un ticket en cerrarse comparado con el tiempo que llevan esperando los abiertos. El color indica si van **al día** (verde), si piden **atención** (ámbar) o si van **atrasados** (rojo).
 - **Trayectoria**: la evolución de los tickets abiertos y la proyección hasta cerrarlos.
 - **Por epic**: cada epic con sus tickets abiertos y los cerrados en el periodo, y una barra por estado. Al tocarla se despliegan sus tickets con enlace a Jira. Las subtareas cuentan en la epic de su ticket padre; los tickets sin epic van en el grupo *Sin epic*.
-  Con el selector **Ritmo | Entrega** se ve cuánto falta para cerrar cada epic a su ritmo de cierre, o cuánto falta para su fecha de entrega (*Due date* de la epic en Jira), con una etiqueta que indica si llega a tiempo.
+  Con el selector **Ritmo | Estado | Entrega** se ve cuánto falta para cerrar cada epic a su ritmo de cierre, según el estado de sus tickets, o hasta su fecha de entrega (*Due date* de la epic en Jira), con una etiqueta que indica si llega a tiempo.
 
 Se puede personalizar qué bloques se ven, su orden, qué tipos de ticket no se cuentan, el idioma (español o inglés) y activar el texto extra grande. Las preferencias se guardan en cada dispositivo; el idioma inicial es el del navegador y también se puede cambiar en la pantalla de entrada. Los nombres de estados y tipos de ticket se muestran tal como están en Jira.
 
@@ -86,6 +86,7 @@ Si macOS pregunta si permite conexiones entrantes para `node`, acepta para que e
 - **Cerrado** = cualquier estado de la categoría *Done* de Jira. La fecha de cierre es la resolución o, si no la hay, el último cambio de categoría.
 - **Ritmo de cierre** = cerrados en el periodo ÷ semanas del periodo. **Para cerrar todo** = abiertos ÷ ritmo de cierre. Es una aproximación: no tiene en cuenta los tickets nuevos que lleguen (si llegan más de los que se cierran, el dashboard lo avisa).
 - **Un ticket tarda** = promedio de días entre creación y cierre de los cerrados en el periodo. **Los abiertos llevan** = promedio de días desde la creación de los abiertos.
+- **Proyección por estado** (vista *Estado*): con el historial de Jira de los tickets cerrados en el periodo se mide cuánto suele faltar para cerrar un ticket desde que entra en cada estado. A cada ticket abierto se le calcula lo que le falta según su estado y el tiempo que ya lleva en él. Una epic termina cuando lo hace su ticket más lento, pero nunca más rápido de lo que el equipo cierra ese trabajo a su ritmo. Si un estado tiene menos de 3 mediciones, se usa su tipo de estado (por hacer o en curso). Los valores se pueden corregir en *Personalizar*.
 - **Estado**: al día si los abiertos llevan menos que lo que tarda un ticket en cerrarse, atención hasta 1,5 veces y atrasado por encima.
 - Se consideran hasta 5.000 tickets abiertos y 5.000 cerrados.
 

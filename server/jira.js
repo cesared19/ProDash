@@ -82,7 +82,8 @@ export function createJiraClient({ baseUrl, email, token }) {
 		},
 
 		// Uses the enhanced search endpoint (the old /search was retired in 2025).
-		async search(jql, fields, limit) {
+		// `expand` can be 'changelog' to include each issue's history.
+		async search(jql, fields, limit, expand) {
 			const issues = []
 			let nextPageToken
 			do {
@@ -90,6 +91,7 @@ export function createJiraClient({ baseUrl, email, token }) {
 					jql,
 					fields,
 					maxResults: PAGE_SIZE,
+					...(expand ? { expand } : {}),
 					...(nextPageToken ? { nextPageToken } : {}),
 				})
 				issues.push(...page.issues)

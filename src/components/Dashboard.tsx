@@ -12,7 +12,17 @@ import { ProjectPicker } from './ProjectPicker'
 
 const PERIODS: Period[] = [30, 90, 180, 365, 'all']
 
-type BlockProps = { summary: Summary; settings: Settings; update: (patch: Partial<Settings>) => void }
+// Which epics are open and how many of their tickets are shown. It lives here,
+// not in the block, so the PNG copy shows exactly what is on screen.
+export type EpicUi = Record<string, { expanded: boolean; shown: number }>
+
+export type BlockProps = {
+	summary: Summary
+	settings: Settings
+	update: (patch: Partial<Settings>) => void
+	epicUi: EpicUi
+	setEpicUi: (key: string, value: { expanded: boolean; shown: number }) => void
+}
 
 const BLOCK_VIEWS: Record<BlockId, { Component: (p: BlockProps) => JSX.Element; size: string }> = {
 	open: { Component: OpenBlock, size: 'small' },
@@ -52,11 +62,18 @@ export function Dashboard({
 	const [customizing, setCustomizing] = useState(false)
 	const [exporting, setExporting] = useState(false)
 	const exportRef = useRef<HTMLDivElement>(null)
+	const [epicUi, setEpicUiState] = useState<EpicUi>({})
+	const setEpicUi = useCallback(
+		(epicKey: string, value: { expanded: boolean; shown: number }) =>
+			setEpicUiState((current) => ({ ...current, [epicKey]: value })),
+		[],
+	)
 
 	useEffect(() => {
 		if (!key) return
 		setIssueTypes(null)
 		setSummary(null)
+		setEpicUiState({})
 		api.issueTypes(key).then(setIssueTypes, (e) => {
 			onUnauthorized(e)
 			setError((e as Error).message)
@@ -69,24 +86,33 @@ export function Dashboard({
 
 	const excluded = key ? (settings.excluded[key] ?? (issueTypes ? defaultExcluded(issueTypes) : null)) : null
 	const excludedKey = excluded?.join(',')
+	const statusDaysKey = JSON.stringify((key && settings.statusDays[key]) || {})
 
-	const load = useCallback(async () => {
+	const load = useCallback(async (fresh = false) => {
 		if (!key || excludedKey == null) return
 		setLoading(true)
 		setError(null)
 		try {
-			setSummary(await api.summary(key, settings.period, excludedKey ? excludedKey.split(',') : []))
+			setSummary(
+				await api.summary(
+					key,
+					settings.period,
+					excludedKey ? excludedKey.split(',') : [],
+					JSON.parse(statusDaysKey),
+					fresh,
+				),
+			)
 		} catch (e) {
 			onUnauthorized(e)
 			setError((e as Error).message)
 		} finally {
 			setLoading(false)
 		}
-	}, [key, excludedKey, settings.period, onUnauthorized])
+	}, [key, excludedKey, statusDaysKey, settings.period, onUnauthorized])
 
 	useEffect(() => {
 		load()
-		const timer = setInterval(load, REFRESH_MS)
+		const timer = setInterval(() => load(), REFRESH_MS)
 		return () => clearInterval(timer)
 	}, [load])
 
@@ -127,6 +153,7 @@ export function Dashboard({
 					<p>
 						{summary ? t.reportLine(longDate(t, summary.generatedAt), periodLabel(t, summary.periodDays)) : ' '}
 						{excludedNames.length > 0 && t.excluding(excludedNames.join(', '))}
+						{summary && visibleBlocks.includes('epics') && t.reportEpicView(t[settings.epicView])}
 					</p>
 				</div>
 				{!summary && !error && <div className="loading">{t.loadingData}</div>}
@@ -136,7 +163,13 @@ export function Dashboard({
 							const { Component, size } = BLOCK_VIEWS[id]
 							return (
 								<div key={id} className={`block block-${size} block-${id}`}>
-									<Component summary={summary} settings={settings} update={update} />
+									<Component
+										summary={summary}
+										settings={settings}
+										update={update}
+										epicUi={epicUi}
+										setEpicUi={setEpicUi}
+									/>
 								</div>
 							)
 						})}
@@ -171,7 +204,7 @@ export function Dashboard({
 					))}
 				</div>
 				<div className="actions">
-					<button className="button" onClick={load} disabled={loading} aria-label={t.refresh}>
+					<button className="button" onClick={() => load(true)} disabled={loading} aria-label={t.refresh}>
 						<RefreshIcon className={loading ? 'spin' : ''} />
 						<span className="button-text">{t.refresh}</span>
 					</button>
@@ -220,6 +253,7 @@ export function Dashboard({
 					update={update}
 					issueTypes={issueTypes}
 					excluded={excluded ?? []}
+					statusForecast={summary?.statusForecast ?? null}
 					version={version}
 					onClose={() => setCustomizing(false)}
 				/>

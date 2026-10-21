@@ -1,10 +1,20 @@
-import { useState } from 'react'
-import type { Delivery, EpicGroup, Summary } from '../api'
+import type { Delivery, EpicGroup } from '../api'
 import { count, duration, durationText, periodLabel, shortDate } from '../format'
 import { useT, type Messages } from '../i18n'
-import type { EpicView, Settings } from '../settings'
+import type { EpicView } from '../settings'
 import { Card, statusTones } from './Blocks'
-import { AlertIcon, CheckCircleIcon, ChevronDownIcon, ClockIcon, FlagIcon, LayersIcon, QuestionIcon, StopIcon } from './icons'
+import type { BlockProps } from './Dashboard'
+import {
+	AlertIcon,
+	CheckCircleIcon,
+	ChevronDownIcon,
+	ClockIcon,
+	FlagIcon,
+	GridIcon,
+	LayersIcon,
+	QuestionIcon,
+	StopIcon,
+} from './icons'
 
 const PAGE = 30
 const DAY = 24 * 60 * 60 * 1000
@@ -18,6 +28,14 @@ const DELIVERY_TONES: Record<Exclude<Delivery, 'noDate'>, { className: string; I
 	unknown: { className: 'tone-neutral', Icon: QuestionIcon },
 }
 
+const VIEWS: { view: EpicView; Icon: typeof ClockIcon }[] = [
+	{ view: 'pace', Icon: ClockIcon },
+	{ view: 'status', Icon: GridIcon },
+	{ view: 'delivery', Icon: FlagIcon },
+]
+
+const workText = (t: Messages, n: number) => n.toLocaleString(t.locale, { maximumFractionDigits: 1 })
+
 // A Jira date ("YYYY-MM-DD") read at midday, so no time zone moves it to another day.
 const dueTime = (dueDate: string) => Date.parse(`${dueDate}T12:00:00`)
 
@@ -30,6 +48,13 @@ function timeLine(t: Messages, epic: EpicGroup, view: EpicView, now: number) {
 			main: t.paceEta(`${eta.value} ${eta.unit}`),
 			detail: epic.etaDate ? t.paceTowards(shortDate(t, epic.etaDate)) : '',
 		}
+	}
+	if (view === 'status') {
+		if (epic.statusEtaWeeks == null) return { main: t.noStatusForecast, detail: '' }
+		const eta = duration(t, epic.statusEtaWeeks * 7)
+		const parts = [epic.statusEtaDate ? t.paceTowards(shortDate(t, epic.statusEtaDate)) : '']
+		if (epic.workUnits != null) parts.push(t.workLeft(workText(t, epic.workUnits)))
+		return { main: t.paceEta(`${eta.value} ${eta.unit}`), detail: parts.filter(Boolean).join(' · ') }
 	}
 	if (!epic.dueDate) return { main: t.noDueDate, detail: '' }
 	const detail = t.dueOn(shortDate(t, `${epic.dueDate}T12:00:00`))
@@ -45,27 +70,37 @@ function EpicRow({
 	jiraBaseUrl,
 	view,
 	now,
+	byStatusAvailable,
+	ui,
+	setUi,
 }: {
 	epic: EpicGroup
 	toneOf: (status: string, category: string) => string
 	jiraBaseUrl: string | null
 	view: EpicView
 	now: number
+	byStatusAvailable: boolean
+	ui: { expanded: boolean; shown: number } | undefined
+	setUi: (value: { expanded: boolean; shown: number }) => void
 }) {
 	const t = useT()
-	const [expanded, setExpanded] = useState(false)
-	const [shown, setShown] = useState(PAGE)
+	const expanded = ui?.expanded ?? false
+	const shown = ui?.shown ?? PAGE
 	const name = epic.name ?? t.noEpic
 	const total = epic.open + epic.closed
 	const visible = epic.issues.slice(0, shown)
 	const notLoaded = epic.issueCount - epic.issues.length
-	// Tickets without an epic have no due date, so they only show their pace.
-	const time = epic.key || view === 'pace' ? timeLine(t, epic, view, now) : null
-	const badge = epic.delivery !== 'noDate' ? DELIVERY_TONES[epic.delivery] : null
+	// Tickets without an epic have no due date, so they show no delivery line.
+	const time = epic.key || view !== 'delivery' ? timeLine(t, epic, view, now) : null
+	// The badge compares the due date with the forecast of the view (by status
+	// for Status and Delivery, when there is one).
+	const delivery = view !== 'pace' && byStatusAvailable ? epic.statusDelivery : epic.delivery
+	const badge = delivery !== 'noDate' ? DELIVERY_TONES[delivery] : null
+	const TimeIcon = VIEWS.find((v) => v.view === view)!.Icon
 
 	return (
 		<li className={`epic${expanded ? ' expanded' : ''}`}>
-			<button className="epic-head" aria-expanded={expanded} onClick={() => setExpanded(!expanded)}>
+			<button className="epic-head" aria-expanded={expanded} onClick={() => setUi({ expanded: !expanded, shown })}>
 				<ChevronDownIcon className="epic-chevron" />
 				<span className="epic-title">
 					<span className="epic-name">{name}</span>
@@ -97,14 +132,14 @@ function EpicRow({
 				<div className="epic-time">
 					{time && (
 						<span className="epic-time-text">
-							{view === 'pace' ? <ClockIcon /> : <FlagIcon />}
+							<TimeIcon />
 							<strong>{time.main}</strong>
 							{time.detail && <span className="muted">· {time.detail}</span>}
 						</span>
 					)}
 					{badge && (
 						<span className={`delivery-badge ${badge.className}`}>
-							<badge.Icon /> {t.deliveryStatus[epic.delivery]}
+							<badge.Icon /> {t.deliveryStatus[delivery]}
 						</span>
 					)}
 				</div>
@@ -129,7 +164,7 @@ function EpicRow({
 						))}
 					</ul>
 					{shown < epic.issues.length && (
-						<button className="button" onClick={() => setShown(shown + PAGE)}>
+						<button className="button" onClick={() => setUi({ expanded, shown: shown + PAGE })}>
 							{t.showMore(count(t, Math.min(PAGE, epic.issues.length - shown)))}
 						</button>
 					)}
@@ -142,17 +177,15 @@ function EpicRow({
 	)
 }
 
-export function EpicsBlock({
-	summary,
-	settings,
-	update,
-}: {
-	summary: Summary
-	settings: Settings
-	update: (patch: Partial<Settings>) => void
-}) {
+export function EpicsBlock({ summary, settings, update, epicUi, setEpicUi }: BlockProps) {
 	const t = useT()
 	const view = settings.epicView
+	const forecast = summary.statusForecast
+	const viewHelp = {
+		pace: t.paceHelp,
+		status: forecast ? `${t.statusHelp(count(t, forecast.basedOn))}${forecast.basedOn < 10 ? ` ${t.fewData}` : ''}` : t.noStatusForecast,
+		delivery: t.deliveryHelp,
+	}[view]
 	const now = Date.parse(summary.generatedAt)
 	// Same colors as "Open by status", so a status reads the same everywhere.
 	const tones = statusTones(summary.byStatus)
@@ -167,7 +200,7 @@ export function EpicsBlock({
 			) : (
 				<>
 					<div className="segmented screen-only epic-view" role="radiogroup" aria-label={t.epicTimeView}>
-						{(['pace', 'delivery'] as const).map((v) => (
+						{VIEWS.map(({ view: v, Icon }) => (
 							<button
 								key={v}
 								role="radio"
@@ -175,13 +208,13 @@ export function EpicsBlock({
 								className={view === v ? 'active' : ''}
 								onClick={() => update({ epicView: v })}
 							>
-								{v === 'pace' ? <ClockIcon /> : <FlagIcon />}
+								<Icon />
 								{t[v]}
 							</button>
 						))}
 					</div>
 					<p className="card-help">
-						{t.epicHelp(periodLabel(t, summary.periodDays))} {view === 'pace' ? t.paceHelp : t.deliveryHelp}{' '}
+						{t.epicHelp(periodLabel(t, summary.periodDays))} {viewHelp}{' '}
 						<span className="screen-only">{t.epicTap}</span>
 					</p>
 					<ul className="epic-list">
@@ -193,6 +226,9 @@ export function EpicsBlock({
 								jiraBaseUrl={summary.jiraBaseUrl}
 								view={view}
 								now={now}
+								byStatusAvailable={forecast != null}
+								ui={epicUi[epic.key ?? '-']}
+								setUi={(value) => setEpicUi(epic.key ?? '-', value)}
 							/>
 						))}
 					</ul>

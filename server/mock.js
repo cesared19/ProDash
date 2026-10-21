@@ -54,6 +54,29 @@ function seeded(seed) {
 	}
 }
 
+// Status changes along Por hacer → En curso → En revisión → Hecho (Bloqueado
+// hangs from En curso). Review is the short last step, as in real teams.
+function history(current, created, end, isDone, rand) {
+	const span = end - created
+	const steps = isDone
+		? [['En curso', 0.3], ['En revisión', 0.88], ['Hecho', 1]]
+		: {
+				'Por hacer': [],
+				'En curso': [['En curso', 0.4 + rand() * 0.4]],
+				'En revisión': [['En curso', 0.3], ['En revisión', 0.8 + rand() * 0.15]],
+				Bloqueado: [['En curso', 0.3], ['Bloqueado', 0.6]],
+			}[current] ?? []
+	let from = 'Por hacer'
+	return steps.map(([to, at]) => {
+		const h = {
+			created: new Date(created + span * at).toISOString(),
+			items: [{ field: 'status', fromString: from, toString: to }],
+		}
+		from = to
+		return h
+	})
+}
+
 function generate(projectKey) {
 	const rand = seeded([...projectKey].reduce((a, c) => a + c.charCodeAt(0), 0) * 97)
 	const now = Date.now()
@@ -88,6 +111,7 @@ function generate(projectKey) {
 		issues.push({
 			key: `${projectKey}-${n}`,
 			typeId: type.id,
+			changelog: { histories: history(status.name, created, closed ?? now, Boolean(closed), rand) },
 			fields: {
 				summary: SUMMARIES[Math.floor(rand() * SUMMARIES.length)],
 				parent,

@@ -6,7 +6,7 @@ Dashboard visual de un proyecto de Jira Cloud con reporte en PNG. Corre con Dock
 
 ## Arquitectura
 
-- **Servidor:** Node + Express en `server/` (ESM, sin build). Hace de proxy a la API REST v3 de Jira (`/search/jql`) con el token de `.env`; el navegador nunca lo ve. Calcula las métricas en `metrics.js` (con tests en `metrics.test.js`). Mensajes de error en español e inglés en `messages.js`.
+- **Servidor:** Node + Express en `server/` (ESM, sin build). Hace de proxy a la API REST v3 de Jira (`/search/jql`) con el token de `.env`; el navegador nunca lo ve. Calcula las métricas en `metrics.js` y la proyección por estado (con el changelog de Jira) en `forecast.js`; tests en `metrics.test.js` y `forecast.test.js`. Mensajes de error en español e inglés en `messages.js`.
 - **Cliente:** React + Vite + TypeScript en `src/`, CSS propio en `styles.css` (sin Tailwind). Textos en `src/i18n.ts` (español e inglés): todo texto visible va ahí, nunca escrito en un componente.
 - **Modo demo:** `JIRA_MOCK=true` usa `server/mock.js`; sirve para probar la interfaz sin Jira.
 - **Deploy:** imagen Docker (`Dockerfile`, `docker-compose.yml`), configurada con `.env`.
