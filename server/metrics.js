@@ -1,3 +1,5 @@
+import { statusForecast } from './forecast.js'
+
 const DAY = 24 * 60 * 60 * 1000
 const WEEK = 7 * DAY
 const CATEGORY_ORDER = { new: 0, indeterminate: 1, done: 2 }
@@ -11,13 +13,26 @@ export function normalizeIssue(issue) {
 	// (Jira Cloud uses it for both company- and team-managed projects).
 	const parent = f.parent
 	const parentIsEpic = (parent?.fields?.issuetype?.hierarchyLevel ?? 0) >= 1
+	const created = Date.parse(f.created)
+	// Status changes from the changelog, oldest first.
+	const transitions = (issue.changelog?.histories ?? [])
+		.flatMap((h) =>
+			(h.items ?? [])
+				.filter((item) => item.field === 'status')
+				.map((item) => ({ at: Date.parse(h.created), from: item.fromString, to: item.toString })),
+		)
+		.filter((t) => !Number.isNaN(t.at))
+		.sort((a, b) => a.at - b.at)
 	return {
 		key: issue.key,
 		summary: f.summary ?? '',
 		status: f.status?.name ?? 'Sin estado',
 		category: f.status?.statusCategory?.key ?? 'new',
-		created: Date.parse(f.created),
+		created,
 		closedAt: closedRaw ? Date.parse(closedRaw) : null,
+		transitions,
+		initialStatus: transitions[0]?.from ?? f.status?.name ?? 'Sin estado',
+		statusSince: transitions.at(-1)?.at ?? created,
 		parentKey: parent?.key ?? null,
 		epic: parentIsEpic
 			? {
@@ -38,7 +53,7 @@ const MAX_ISSUES_PER_EPIC = 200
  * Issues without an epic go to a last group with key null.
  * Each group gets its own pace: closed in the period ÷ `weeks`.
  */
-export function buildEpics(open, closedInPeriod, { weeks = 1, now = Date.now() } = {}) {
+export function buildEpics(open, closedInPeriod, { weeks = 1, now = Date.now(), forecast = null } = {}) {
 	const all = [...open, ...closedInPeriod]
 	const byKey = new Map(all.map((i) => [i.key, i]))
 	const groups = new Map()
@@ -67,6 +82,7 @@ export function buildEpics(open, closedInPeriod, { weeks = 1, now = Date.now() }
 				(a, b) => rank(a) - rank(b) || (b.closedAt ?? 0) - (a.closedAt ?? 0) || a.created - b.created,
 			)
 			const closeRatePerWeek = g.closed / weeks
+			const byStatus = forecast?.eta(issues.filter((i) => i.category !== 'done').map((i) => i.key))
 			const etaWeeks = g.open === 0 ? 0 : closeRatePerWeek > 0 ? g.open / closeRatePerWeek : null
 			return {
 				key: g.key,
@@ -78,8 +94,12 @@ export function buildEpics(open, closedInPeriod, { weeks = 1, now = Date.now() }
 				closeRatePerWeek,
 				etaWeeks,
 				etaDate: etaWeeks != null ? new Date(now + etaWeeks * WEEK).toISOString() : null,
+				statusEtaWeeks: byStatus?.etaWeeks ?? null,
+				statusEtaDate: byStatus?.etaDate ?? null,
+				workUnits: byStatus?.workUnits ?? null,
 				dueDate: null,
 				delivery: g.open === 0 ? 'done' : 'noDate',
+				statusDelivery: g.open === 0 ? 'done' : 'noDate',
 				byStatus: [...g.byStatus.values()].sort((a, b) => rank(a) - rank(b) || b.count - a.count),
 				issueCount: issues.length,
 				issues: issues.slice(0, MAX_ISSUES_PER_EPIC).map((i) => ({
@@ -109,7 +129,7 @@ function median(values) {
  * including some closed before the period (the JQL filters on `updated`).
  * days: period length, or null for the whole history.
  */
-export function buildSummary({ open, closed, days, now = Date.now() }) {
+export function buildSummary({ open, closed, days, now = Date.now(), statusDays = {} }) {
 	const allClosed = closed.filter((i) => i.closedAt != null && !Number.isNaN(i.closedAt))
 	const earliest = Math.min(
 		now - WEEK,
@@ -138,6 +158,7 @@ export function buildSummary({ open, closed, days, now = Date.now() }) {
 		open.filter((i) => i.created >= since).length + closedInPeriod.filter((i) => i.created >= since).length
 	const createRate = createdInPeriod / weeks
 	const etaWeeks = open.length === 0 ? 0 : closeRate > 0 ? open.length / closeRate : null
+	const forecast = statusForecast({ open, closedInPeriod, closeRatePerWeek: closeRate, now, overrides: statusDays })
 
 	const avgLead = average(leadTimes)
 	const avgAge = average(openAges)
@@ -182,7 +203,8 @@ export function buildSummary({ open, closed, days, now = Date.now() }) {
 			health,
 		},
 		history,
-		epics: buildEpics(open, closedInPeriod, { weeks, now }),
+		epics: buildEpics(open, closedInPeriod, { weeks, now, forecast }),
+		statusForecast: forecast ? { ...forecast, eta: undefined } : null,
 	}
 }
 
@@ -194,14 +216,19 @@ export function buildSummary({ open, closed, days, now = Date.now() }) {
 export function applyDueDates(epics, dueByKey, now = Date.now()) {
 	return epics.map((epic) => {
 		const dueDate = (epic.key && dueByKey.get(epic.key)) || null
-		let delivery = epic.delivery
-		if (epic.open > 0 && dueDate) {
-			// The due date counts until the end of that day.
-			const dueEnd = Date.parse(`${dueDate}T23:59:59`)
-			if (dueEnd < now) delivery = 'overdue'
-			else if (epic.etaDate == null) delivery = 'unknown'
-			else delivery = Date.parse(epic.etaDate) <= dueEnd ? 'onTrack' : 'late'
+		// The due date counts until the end of that day.
+		const dueEnd = dueDate ? Date.parse(`${dueDate}T23:59:59`) : null
+		const compare = (etaDate, current) => {
+			if (epic.open === 0 || dueEnd == null) return current
+			if (dueEnd < now) return 'overdue'
+			if (etaDate == null) return 'unknown'
+			return Date.parse(etaDate) <= dueEnd ? 'onTrack' : 'late'
 		}
-		return { ...epic, dueDate, delivery }
+		return {
+			...epic,
+			dueDate,
+			delivery: compare(epic.etaDate, epic.delivery),
+			statusDelivery: compare(epic.statusEtaDate, epic.statusDelivery),
+		}
 	})
 }

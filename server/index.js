@@ -128,6 +128,27 @@ app.get('/api/projects/:key/issue-types', async (req, res, next) => {
 
 const ISSUE_KEY = /^[A-Z][A-Z0-9_]*-\d+$/
 
+// Reading the changelog makes the Jira searches heavier, so a summary is
+// reused for a short while (Refresh asks for a fresh one).
+const CACHE_MS = 2 * 60 * 1000
+const summaryCache = new Map()
+
+// Days typed by the user per status in Customize: {"Waiting for build": 2}.
+function parseStatusDays(raw) {
+	if (!raw) return {}
+	try {
+		const parsed = JSON.parse(String(raw))
+		if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {}
+		return Object.fromEntries(
+			Object.entries(parsed)
+				.slice(0, 100)
+				.filter(([name, days]) => name.length <= 200 && Number.isFinite(days) && days >= 0 && days <= 3650),
+		)
+	} catch {
+		return {}
+	}
+}
+
 // The parent field on child issues has no due date, so the epics are read
 // separately. Without due dates the dashboard still works, so errors are
 // logged and ignored.
@@ -153,6 +174,10 @@ app.get('/api/projects/:key/summary', async (req, res, next) => {
 	const exclude = String(req.query.exclude ?? '')
 		.split(',')
 		.filter((id) => /^\d+$/.test(id))
+	const statusDays = parseStatusDays(req.query.statusDays)
+	const cacheKey = JSON.stringify([key, days, exclude, statusDays])
+	const cached = summaryCache.get(cacheKey)
+	if (cached && cached.until > Date.now() && req.query.fresh !== '1') return res.json(cached.body)
 	try {
 		let base = `project = "${key}"`
 		if (exclude.length) base += ` AND issuetype not in (${exclude.join(',')})`
@@ -160,22 +185,27 @@ app.get('/api/projects/:key/summary', async (req, res, next) => {
 		// `updated` is a cheap superset filter: closing an issue updates it.
 		// The exact close date is checked in buildSummary.
 		const closedJql = `${base} AND statusCategory = Done${days ? ` AND updated >= -${days}d` : ''} ORDER BY updated DESC`
+		// The changelog gives the status history used by the forecast by status.
 		const [open, closed] = await Promise.all([
-			jira.search(`${base} AND statusCategory != Done ORDER BY created ASC`, fields, MAX_ISSUES),
-			jira.search(closedJql, fields, MAX_ISSUES),
+			jira.search(`${base} AND statusCategory != Done ORDER BY created ASC`, fields, MAX_ISSUES, 'changelog'),
+			jira.search(closedJql, fields, MAX_ISSUES, 'changelog'),
 		])
 		const summary = buildSummary({
 			open: open.issues.map(normalizeIssue),
 			closed: closed.issues.map(normalizeIssue),
 			days,
+			statusDays,
 		})
 		summary.epics = applyDueDates(summary.epics, await epicDueDates(summary.epics), Date.now())
-		res.json({
+		const body = {
 			...summary,
 			projectKey: key,
 			jiraBaseUrl: config.mock ? null : config.jira.baseUrl,
 			truncated: open.truncated || closed.truncated,
-		})
+		}
+		summaryCache.set(cacheKey, { until: Date.now() + CACHE_MS, body })
+		for (const [k, v] of summaryCache) if (v.until < Date.now()) summaryCache.delete(k)
+		res.json(body)
 	} catch (e) {
 		next(e)
 	}

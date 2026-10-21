@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import type { Health, Summary } from '../api'
 import { count, duration, durationText, longDate, periodLabel, rate } from '../format'
 import { useT } from '../i18n'
+import type { Settings } from '../settings'
 import { TrendChart } from './TrendChart'
 import {
 	AlertIcon,
@@ -92,27 +93,31 @@ export function ClosedBlock({ summary }: { summary: Summary }) {
 	)
 }
 
-export function EtaBlock({ summary }: { summary: Summary }) {
+export function EtaBlock({ summary, settings }: { summary: Summary; settings: Settings }) {
 	const t = useT()
 	const tr = summary.trajectory
 	const health = HEALTH[tr.health]
-	const eta = duration(t, tr.etaWeeks == null ? null : tr.etaWeeks * 7)
+	// Follows the method chosen in By epic: the pace, or the forecast by status.
+	const forecast = settings.epicView !== 'pace' ? summary.statusForecast : null
+	const etaWeeks = forecast ? forecast.etaWeeks : tr.etaWeeks
+	const etaDate = forecast ? forecast.etaDate : tr.etaDate
+	const eta = duration(t, etaWeeks == null ? null : etaWeeks * 7)
 	let hint: ReactNode
 	if (tr.remaining === 0) hint = t.nothingOpen
-	else if (tr.etaWeeks == null) hint = t.noClosures
+	else if (etaWeeks == null) hint = t.noClosures
 	else
 		hint = (
 			<>
-				{t.closingRate(rate(t, tr.closeRatePerWeek))}
-				{tr.etaDate && t.towards(longDate(t, tr.etaDate))}
+				{forecast ? t.byStatusHint : t.closingRate(rate(t, tr.closeRatePerWeek))}
+				{etaDate && t.towards(longDate(t, etaDate))}
 			</>
 		)
 	return (
 		<Tile
 			className={health.className}
 			icon={<FlagIcon />}
-			value={tr.remaining === 0 ? t.allDone : tr.etaWeeks == null ? '?' : `~${eta.value}`}
-			unit={tr.remaining === 0 || tr.etaWeeks == null ? undefined : eta.unit}
+			value={tr.remaining === 0 ? t.allDone : etaWeeks == null ? '?' : `~${eta.value}`}
+			unit={tr.remaining === 0 || etaWeeks == null ? undefined : eta.unit}
 			label={t.toCloseAll}
 			hint={hint}
 			badge={

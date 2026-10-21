@@ -7,7 +7,7 @@ export const BLOCKS: BlockId[] = ['open', 'closed', 'eta', 'statuses', 'times', 
 
 export type Period = 30 | 90 | 180 | 365 | 'all'
 
-export type EpicView = 'pace' | 'delivery'
+export type EpicView = 'pace' | 'status' | 'delivery'
 
 export type Settings = {
 	projectKey: string | null
@@ -19,6 +19,8 @@ export type Settings = {
 	bigText: boolean
 	lang: Lang
 	epicView: EpicView
+	// Days typed per status in Customize, per project: { APP: { 'En revisión': 2 } }.
+	statusDays: Record<string, Record<string, number>>
 }
 
 const DEFAULTS: Settings = {
@@ -30,6 +32,7 @@ const DEFAULTS: Settings = {
 	bigText: false,
 	lang: browserLang(),
 	epicView: 'pace',
+	statusDays: {},
 }
 
 const STORAGE_KEY = 'prodash-settings'

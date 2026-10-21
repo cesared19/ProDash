@@ -15,6 +15,22 @@ export type StatusCount = {
 
 export type Health = 'good' | 'warning' | 'bad' | 'unknown'
 
+export type StatusForecast = {
+	// Tickets closed in the period that the forecast learned from.
+	basedOn: number
+	cycleDays: number
+	statuses: {
+		name: string
+		category: StatusCount['category']
+		typicalDays: number
+		samples: number
+		source: 'history' | 'category' | 'default' | 'override'
+	}[]
+	etaWeeks: number
+	etaDate: string
+	workUnits: number
+}
+
 export type Delivery = 'done' | 'onTrack' | 'late' | 'overdue' | 'unknown' | 'noDate'
 
 export type EpicGroup = {
@@ -29,8 +45,13 @@ export type EpicGroup = {
 	etaWeeks: number | null
 	etaDate: string | null
 	// Jira due date of the epic, "YYYY-MM-DD".
+	statusEtaWeeks: number | null
+	statusEtaDate: string | null
+	workUnits: number | null
 	dueDate: string | null
+	// Compared with the pace (delivery) or with the forecast by status (statusDelivery).
 	delivery: Delivery
+	statusDelivery: Delivery
 	byStatus: StatusCount[]
 	issueCount: number
 	issues: { key: string; summary: string; status: string; category: StatusCount['category'] }[]
@@ -58,6 +79,7 @@ export type Summary = {
 	}
 	history: { date: string; open: number }[]
 	epics: EpicGroup[]
+	statusForecast: StatusForecast | null
 	jiraBaseUrl: string | null
 	truncated: boolean
 }
@@ -91,9 +113,10 @@ export const api = {
 	logout: () => request<{ ok: true }>('/api/logout', { method: 'POST' }),
 	projects: () => request<Project[]>('/api/projects'),
 	issueTypes: (key: string) => request<IssueType[]>(`/api/projects/${encodeURIComponent(key)}/issue-types`),
-	summary: (key: string, days: number | 'all', exclude: string[]) =>
+	summary: (key: string, days: number | 'all', exclude: string[], statusDays: Record<string, number>, fresh: boolean) =>
 		request<Summary>(
-			`/api/projects/${encodeURIComponent(key)}/summary?days=${days}&exclude=${exclude.join(',')}`,
+			`/api/projects/${encodeURIComponent(key)}/summary?days=${days}&exclude=${exclude.join(',')}` +
+				`&statusDays=${encodeURIComponent(JSON.stringify(statusDays))}${fresh ? '&fresh=1' : ''}`,
 		),
 }
 
