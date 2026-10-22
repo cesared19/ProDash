@@ -267,19 +267,36 @@ svg {
 	padding: 32px;
 }
 
-.report.exporting .report-head p {
-	margin-bottom: 24px;
+/* Spacing with padding, not margins: the PNG renderer does not always keep
+   margins around the last line of a block. */
+.report-head {
+	padding-bottom: 16px;
 }
 
 .report-head h1 {
 	margin: 0;
 	font-size: 2rem;
+	line-height: 1.2;
 }
 
 .report-head p {
-	margin: 4px 0 16px;
+	margin: 0;
 	color: var(--muted);
 	font-size: 1rem;
+	line-height: 1.5;
+}
+
+.report.exporting .report-head {
+	padding-bottom: 32px;
+}
+
+.report.exporting .report-head h1 {
+	padding-bottom: 10px;
+	font-size: 2.25rem;
+}
+
+.report.exporting .report-head p {
+	font-size: 1.0625rem;
 }
 
 /* The report header repeats the project name, so on screen it only matters for the PNG. */
