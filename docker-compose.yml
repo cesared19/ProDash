@@ -10,4 +10,10 @@ services:
       PORT: 3100
     ports:
       - "${PORT:-3100}:3100"
+    volumes:
+      # Saved views (views.json). Kept across updates and rebuilds.
+      - prodash-data:/app/data
     restart: unless-stopped
+
+volumes:
+  prodash-data:

@@ -80,13 +80,53 @@ export type Summary = {
 	history: { date: string; open: number }[]
 	epics: EpicGroup[]
 	statusForecast: StatusForecast | null
+	view: { id: string; name: string } | null
+	estimateScope: EstimateScope
+	bugs: BugSummary | null
 	jiraBaseUrl: string | null
 	truncated: boolean
 }
 
 export type Session = { authenticated: boolean; mock: boolean; version?: string }
 
+export type EstimateScope = 'project' | 'selection'
+
+// Open bugs; priorities in Jira order (name null = no priority).
+export type BugSummary = {
+	total: number
+	todo: number
+	inProgress: number
+	byPriority: { name: string | null; rank: number | null; count: number }[]
+}
+
+export type SavedView = {
+	id: string
+	projectKey: string
+	name: string
+	epics: string[]
+	issues: string[]
+	labels: string[]
+	components: string[]
+	jql: string
+	estimateScope: EstimateScope
+	bugBreakdown: boolean
+	updatedAt: string
+}
+
+export type ViewInput = Omit<SavedView, 'id' | 'projectKey' | 'updatedAt'>
+
+export type PickedIssue = { key: string; summary: string; status: string; type: string }
+
 export class UnauthorizedError extends Error {}
+
+export class ApiError extends Error {
+	constructor(
+		message: string,
+		readonly status: number,
+	) {
+		super(message)
+	}
+}
 
 // The server answers its error messages in this language.
 let lang = 'es'
@@ -102,7 +142,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 	})
 	if (res.status === 401 && path !== '/api/login') throw new UnauthorizedError()
 	const data = await res.json().catch(() => ({}))
-	if (!res.ok) throw new Error(data.error ?? `Error ${res.status}`)
+	if (!res.ok) throw new ApiError(data.error ?? `Error ${res.status}`, res.status)
 	return data as T
 }
 
@@ -113,10 +153,35 @@ export const api = {
 	logout: () => request<{ ok: true }>('/api/logout', { method: 'POST' }),
 	projects: () => request<Project[]>('/api/projects'),
 	issueTypes: (key: string) => request<IssueType[]>(`/api/projects/${encodeURIComponent(key)}/issue-types`),
-	summary: (key: string, days: number | 'all', exclude: string[], statusDays: Record<string, number>, fresh: boolean) =>
+	summary: (
+		key: string,
+		days: number | 'all',
+		exclude: string[],
+		statusDays: Record<string, number>,
+		fresh: boolean,
+		view: { id: string; scope?: EstimateScope } | null,
+		bugs = false,
+	) =>
 		request<Summary>(
 			`/api/projects/${encodeURIComponent(key)}/summary?days=${days}&exclude=${exclude.join(',')}` +
-				`&statusDays=${encodeURIComponent(JSON.stringify(statusDays))}${fresh ? '&fresh=1' : ''}`,
+				`&statusDays=${encodeURIComponent(JSON.stringify(statusDays))}${fresh ? '&fresh=1' : ''}` +
+				(view ? `&view=${encodeURIComponent(view.id)}${view.scope ? `&scope=${view.scope}` : ''}` : '') +
+				(bugs ? '&bugs=1' : ''),
+		),
+	views: (key: string) => request<SavedView[]>(`/api/projects/${encodeURIComponent(key)}/views`),
+	createView: (key: string, view: ViewInput) =>
+		request<SavedView>(`/api/projects/${encodeURIComponent(key)}/views`, { method: 'POST', body: JSON.stringify(view) }),
+	updateView: (id: string, view: ViewInput) =>
+		request<SavedView>(`/api/views/${encodeURIComponent(id)}`, { method: 'PUT', body: JSON.stringify(view) }),
+	deleteView: (id: string) => request<{ ok: true }>(`/api/views/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+	epics: (key: string) => request<PickedIssue[]>(`/api/projects/${encodeURIComponent(key)}/epics`),
+	searchIssues: (key: string, q: string) =>
+		request<PickedIssue[]>(`/api/projects/${encodeURIComponent(key)}/issues?q=${encodeURIComponent(q)}`),
+	labels: (key: string) => request<string[]>(`/api/projects/${encodeURIComponent(key)}/labels`),
+	components: (key: string) => request<string[]>(`/api/projects/${encodeURIComponent(key)}/components`),
+	jqlCount: (key: string, jql: string) =>
+		request<{ count: number; truncated: boolean }>(
+			`/api/projects/${encodeURIComponent(key)}/jql-count?jql=${encodeURIComponent(jql)}`,
 		),
 }
 

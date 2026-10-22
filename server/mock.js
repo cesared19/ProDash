@@ -1,3 +1,5 @@
+import { JiraError } from './jira.js'
+
 // Demo data (JIRA_MOCK=true) to try the dashboard without a Jira account.
 const DAY = 24 * 60 * 60 * 1000
 
@@ -114,6 +116,9 @@ function generate(projectKey) {
 			changelog: { histories: history(status.name, created, closed ?? now, Boolean(closed), rand) },
 			fields: {
 				summary: SUMMARIES[Math.floor(rand() * SUMMARIES.length)],
+				labels: rand() < 0.5 ? ['producto-a'] : rand() < 0.8 ? ['producto-b'] : ['producto-b', 'urgente'],
+				components: [{ name: COMPONENTS[Math.floor(rand() * COMPONENTS.length)] }],
+				priority: PRIORITIES[Math.min(4, Math.floor(rand() * rand() * 6))],
 				parent,
 				created: new Date(created).toISOString(),
 				resolutiondate: closed ? new Date(closed).toISOString() : null,
@@ -127,6 +132,11 @@ function generate(projectKey) {
 	return issues
 }
 
+// Two products sharing one Jira project, told apart by label and component.
+const LABELS = ['producto-a', 'producto-b', 'urgente']
+const PRIORITIES = ['Highest', 'High', 'Medium', 'Low', 'Lowest'].map((name, i) => ({ id: String(i + 1), name }))
+const COMPONENTS = ['App', 'Backend', 'Web']
+
 export function createMockClient() {
 	return {
 		async myself() {
@@ -137,6 +147,12 @@ export function createMockClient() {
 		},
 		async issueTypes() {
 			return TYPES
+		},
+		async labels() {
+			return LABELS
+		},
+		async components() {
+			return COMPONENTS
 		},
 		// Understands only the JQL shapes built in index.js.
 		async search(jql) {
@@ -151,6 +167,44 @@ export function createMockClient() {
 				return { issues, truncated: false }
 			}
 			const key = jql.match(/project = "([^"]+)"/)?.[1] ?? 'APP'
+			// Pickers of the view editor.
+			const typeIds = jql.match(/issuetype in \(([^)]*)\)/)?.[1]?.split(',')
+			if (typeIds && !typeIds.includes('10005')) {
+				const issues = generate(key).filter(
+					(i) => typeIds.includes(i.typeId) && i.fields.status.statusCategory.key !== 'done',
+				)
+				return { issues, truncated: false }
+			}
+			if (typeIds) {
+				return {
+					issues: EPICS.map((e, i) => ({
+						key: `${key}-${EPIC_KEY_BASE + i + 1}`,
+						fields: { summary: e.name, status: { name: e.status }, issuetype: { name: 'Epic' } },
+					})),
+					truncated: false,
+				}
+			}
+			const byKey = jql.match(/key = "([^"]+)"/)?.[1]
+			const text = jql.match(/text ~ "([^"*]*)\*?"/)?.[1]?.trim().toLowerCase()
+			// A view's JQL: understands labels = x and component = x; anything with INVALID fails.
+			const viewQuery = jql.match(/AND \((.*)\)$/)?.[1]
+			if (byKey || text != null || viewQuery != null) {
+				if (viewQuery && /invalid/i.test(viewQuery)) throw new JiraError(400, `Error en la consulta: ${viewQuery}`)
+				const label = viewQuery?.match(/labels\s*=\s*"?([\w-]+)/i)?.[1]
+				const component = viewQuery?.match(/component\s*=\s*"?([\w-]+)/i)?.[1]
+				const issues = generate(key).filter((i) =>
+					byKey
+						? i.key === byKey
+						: text != null
+							? i.fields.summary.toLowerCase().includes(text)
+							: label
+								? i.fields.labels.includes(label)
+								: component
+									? i.fields.components.some((c) => c.name === component)
+									: i.fields.issuetype.name === 'Historia',
+				)
+				return { issues: issues.slice(0, 1000), truncated: false }
+			}
 			const excluded = jql.match(/issuetype not in \(([^)]*)\)/)?.[1]?.split(',') ?? []
 			const wantDone = /statusCategory = Done/.test(jql)
 			const days = Number(jql.match(/updated >= -(\d+)d/)?.[1]) || null

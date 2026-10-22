@@ -33,6 +33,9 @@ export function normalizeIssue(issue) {
 		transitions,
 		initialStatus: transitions[0]?.from ?? f.status?.name ?? 'Sin estado',
 		statusSince: transitions.at(-1)?.at ?? created,
+		labels: Array.isArray(f.labels) ? f.labels : [],
+		priority: f.priority ? { name: f.priority.name, id: f.priority.id } : null,
+		components: Array.isArray(f.components) ? f.components.map((c) => c.name).filter(Boolean) : [],
 		parentKey: parent?.key ?? null,
 		epic: parentIsEpic
 			? {
@@ -129,7 +132,23 @@ function median(values) {
  * including some closed before the period (the JQL filters on `updated`).
  * days: period length, or null for the whole history.
  */
-export function buildSummary({ open, closed, days, now = Date.now(), statusDays = {} }) {
+/**
+ * open, closed: the project's tickets. selection: optional test for the
+ * tickets of a saved view; the blocks then show only those. estimateScope
+ * says where the pace and the times come from: the whole project
+ * ('project') or the selection only ('selection').
+ */
+export function buildSummary({
+	open: projectOpen,
+	closed: projectClosed,
+	days,
+	now = Date.now(),
+	statusDays = {},
+	selection = null,
+	estimateScope = 'project',
+}) {
+	const open = selection ? projectOpen.filter(selection) : projectOpen
+	const closed = selection ? projectClosed.filter(selection) : projectClosed
 	const allClosed = closed.filter((i) => i.closedAt != null && !Number.isNaN(i.closedAt))
 	const earliest = Math.min(
 		now - WEEK,
@@ -150,15 +169,27 @@ export function buildSummary({ open, closed, days, now = Date.now(), statusDays 
 		(a, b) => (CATEGORY_ORDER[a.category] ?? 1) - (CATEGORY_ORDER[b.category] ?? 1) || b.count - a.count,
 	)
 
-	const leadTimes = closedInPeriod.map((i) => (i.closedAt - i.created) / DAY).filter((d) => d >= 0)
+	// Estimates learn from the whole project or from the selection only.
+	const fromProject = selection != null && estimateScope === 'project'
+	const estimateClosed = fromProject
+		? projectClosed.filter((i) => i.closedAt != null && !Number.isNaN(i.closedAt) && i.closedAt >= since)
+		: closedInPeriod
+
+	const leadTimes = estimateClosed.map((i) => (i.closedAt - i.created) / DAY).filter((d) => d >= 0)
 	const openAges = open.map((i) => (now - i.created) / DAY).filter((d) => d >= 0)
 
-	const closeRate = closedInPeriod.length / weeks
+	const closeRate = estimateClosed.length / weeks
 	const createdInPeriod =
 		open.filter((i) => i.created >= since).length + closedInPeriod.filter((i) => i.created >= since).length
 	const createRate = createdInPeriod / weeks
 	const etaWeeks = open.length === 0 ? 0 : closeRate > 0 ? open.length / closeRate : null
-	const forecast = statusForecast({ open, closedInPeriod, closeRatePerWeek: closeRate, now, overrides: statusDays })
+	const forecast = statusForecast({
+		open,
+		closedInPeriod: estimateClosed,
+		closeRatePerWeek: closeRate,
+		now,
+		overrides: statusDays,
+	})
 
 	const avgLead = average(leadTimes)
 	const avgAge = average(openAges)
@@ -186,6 +217,7 @@ export function buildSummary({ open, closed, days, now = Date.now(), statusDays 
 	return {
 		generatedAt: new Date(now).toISOString(),
 		periodDays: days,
+		estimateScope: selection ? estimateScope : 'project',
 		periodStart: new Date(since).toISOString(),
 		openCount: open.length,
 		closedCount: closedInPeriod.length,
@@ -231,4 +263,31 @@ export function applyDueDates(epics, dueByKey, now = Date.now()) {
 			statusDelivery: compare(epic.statusEtaDate, epic.statusDelivery),
 		}
 	})
+}
+
+// Issue types counted as bugs (same names the client excludes by default).
+export function isBugType(type) {
+	return (type.hierarchyLevel ?? 0) < 1 && /(?<!\p{L})(bug|error|defect|defecto)(?!\p{L})/iu.test(type.name)
+}
+
+/**
+ * Open bugs (not in the Done category) by stage and by Jira priority.
+ * Priorities keep Jira's order: a lower id is a higher priority.
+ */
+export function summarizeBugs(bugs) {
+	const byPriority = new Map()
+	for (const bug of bugs) {
+		const name = bug.priority?.name ?? null
+		const entry = byPriority.get(name) ?? { name, rank: Number(bug.priority?.id) || Infinity, count: 0 }
+		entry.count++
+		byPriority.set(name, entry)
+	}
+	return {
+		total: bugs.length,
+		todo: bugs.filter((b) => b.category === 'new').length,
+		inProgress: bugs.filter((b) => b.category !== 'new').length,
+		byPriority: [...byPriority.values()]
+			.sort((a, b) => a.rank - b.rank || (a.name ?? '').localeCompare(b.name ?? ''))
+			.map(({ name, rank, count }) => ({ name, rank: Number.isFinite(rank) ? rank : null, count })),
+	}
 }

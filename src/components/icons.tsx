@@ -140,3 +140,22 @@ export const LayersIcon = (p: P) => (
 		<path d="m2 17 10 5 10-5M2 12l10 5 10-5" />
 	</Icon>
 )
+
+export const PlusIcon = (p: P) => (
+	<Icon {...p}>
+		<path d="M12 5v14M5 12h14" />
+	</Icon>
+)
+
+export const PencilIcon = (p: P) => (
+	<Icon {...p}>
+		<path d="M17 3a2.8 2.8 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5z" />
+	</Icon>
+)
+
+export const BugIcon = (p: P) => (
+	<Icon {...p}>
+		<rect x="7" y="7" width="10" height="13" rx="5" />
+		<path d="M9 7a3 3 0 0 1 6 0M12 11v9M3 13h4M17 13h4M4 7l3 2M20 7l-3 2M4 19l3-2M20 19l-3-2" />
+	</Icon>
+)
