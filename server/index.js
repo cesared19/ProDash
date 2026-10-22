@@ -9,6 +9,7 @@ import { createJiraClient, JiraError } from './jira.js'
 import { createMockClient } from './mock.js'
 import { applyDueDates, buildSummary, normalizeIssue } from './metrics.js'
 import { messages } from './messages.js'
+import { createViewStore, selectionMatcher, ViewError, viewJql } from './views.js'
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..')
 loadEnvFile(path.join(root, '.env'))
@@ -21,6 +22,7 @@ if (missing.length) {
 
 const { version } = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf8'))
 const jira = config.mock ? createMockClient() : createJiraClient(config.jira)
+const views = createViewStore(process.env.DATA_DIR || path.join(root, 'data'))
 const MAX_ISSUES = 5000
 const COOKIE = 'jd_session'
 const SESSION_DAYS = 30
@@ -56,7 +58,7 @@ function safeEqual(a, b) {
 
 const app = express()
 app.disable('x-powered-by')
-app.use(express.json({ limit: '10kb' }))
+app.use(express.json({ limit: '100kb' }))
 
 app.get('/api/session', (req, res) => {
 	res.json({ authenticated: sessionValid(req), mock: config.mock, version })
@@ -175,13 +177,18 @@ app.get('/api/projects/:key/summary', async (req, res, next) => {
 		.split(',')
 		.filter((id) => /^\d+$/.test(id))
 	const statusDays = parseStatusDays(req.query.statusDays)
-	const cacheKey = JSON.stringify([key, days, exclude, statusDays])
+	const view = req.query.view ? views.get(String(req.query.view)) : null
+	if (req.query.view && (!view || view.projectKey !== key)) {
+		return res.status(404).json({ error: messages(req).viewNotFound })
+	}
+	const estimateScope = req.query.scope === 'selection' || req.query.scope === 'project' ? req.query.scope : view?.estimateScope
+	const cacheKey = JSON.stringify([key, days, exclude, statusDays, view?.id, view?.updatedAt, estimateScope])
 	const cached = summaryCache.get(cacheKey)
 	if (cached && cached.until > Date.now() && req.query.fresh !== '1') return res.json(cached.body)
 	try {
 		let base = `project = "${key}"`
 		if (exclude.length) base += ` AND issuetype not in (${exclude.join(',')})`
-		const fields = ['summary', 'status', 'created', 'resolutiondate', 'statuscategorychangedate', 'parent']
+		const fields = ['summary', 'status', 'created', 'resolutiondate', 'statuscategorychangedate', 'parent', 'labels', 'components']
 		// `updated` is a cheap superset filter: closing an issue updates it.
 		// The exact close date is checked in buildSummary.
 		const closedJql = `${base} AND statusCategory = Done${days ? ` AND updated >= -${days}d` : ''} ORDER BY updated DESC`
@@ -190,16 +197,37 @@ app.get('/api/projects/:key/summary', async (req, res, next) => {
 			jira.search(`${base} AND statusCategory != Done ORDER BY created ASC`, fields, MAX_ISSUES, 'changelog'),
 			jira.search(closedJql, fields, MAX_ISSUES, 'changelog'),
 		])
+		const openIssues = open.issues.map(normalizeIssue)
+		const closedIssues = closed.issues.map(normalizeIssue)
+		let selection = null
+		if (view) {
+			let jqlKeys
+			if (view.jql) {
+				try {
+					const found = await jira.search(viewJql(key, view.jql), ['summary'], MAX_ISSUES)
+					jqlKeys = new Set(found.issues.map((i) => i.key))
+				} catch (e) {
+					if (e instanceof JiraError && e.status === 400) {
+						return res.status(400).json({ error: messages(req).jqlInvalid(e.detail) })
+					}
+					throw e
+				}
+			}
+			selection = selectionMatcher(view, [...openIssues, ...closedIssues], jqlKeys)
+		}
 		const summary = buildSummary({
-			open: open.issues.map(normalizeIssue),
-			closed: closed.issues.map(normalizeIssue),
+			open: openIssues,
+			closed: closedIssues,
 			days,
 			statusDays,
+			selection,
+			estimateScope,
 		})
 		summary.epics = applyDueDates(summary.epics, await epicDueDates(summary.epics), Date.now())
 		const body = {
 			...summary,
 			projectKey: key,
+			view: view ? { id: view.id, name: view.name } : null,
 			jiraBaseUrl: config.mock ? null : config.jira.baseUrl,
 			truncated: open.truncated || closed.truncated,
 		}
@@ -207,6 +235,122 @@ app.get('/api/projects/:key/summary', async (req, res, next) => {
 		for (const [k, v] of summaryCache) if (v.until < Date.now()) summaryCache.delete(k)
 		res.json(body)
 	} catch (e) {
+		next(e)
+	}
+})
+
+// ---------- Saved views ----------
+
+function viewError(req, res, e) {
+	if (!(e instanceof ViewError)) throw e
+	const m = messages(req)
+	res.status(400).json({ error: m.view[e.message] ?? m.view.invalid })
+}
+
+app.get('/api/projects/:key/views', (req, res) => {
+	const key = projectKey(req, res)
+	if (!key) return
+	res.json(views.list(key))
+})
+
+app.post('/api/projects/:key/views', (req, res) => {
+	const key = projectKey(req, res)
+	if (!key) return
+	try {
+		res.status(201).json(views.create(key, req.body))
+	} catch (e) {
+		viewError(req, res, e)
+	}
+})
+
+app.put('/api/views/:id', (req, res) => {
+	try {
+		const view = views.update(req.params.id, req.body)
+		if (!view) return res.status(404).json({ error: messages(req).viewNotFound })
+		res.json(view)
+	} catch (e) {
+		viewError(req, res, e)
+	}
+})
+
+app.delete('/api/views/:id', (req, res) => {
+	if (!views.remove(req.params.id)) return res.status(404).json({ error: messages(req).viewNotFound })
+	res.json({ ok: true })
+})
+
+// ---------- Pickers for the view editor ----------
+
+const pick = (issue) => ({
+	key: issue.key,
+	summary: issue.fields?.summary ?? '',
+	status: issue.fields?.status?.name ?? '',
+	type: issue.fields?.issuetype?.name ?? '',
+})
+
+app.get('/api/projects/:key/epics', async (req, res, next) => {
+	const key = projectKey(req, res)
+	if (!key) return
+	try {
+		const types = (await jira.issueTypes(key)).filter((t) => t.hierarchyLevel >= 1).map((t) => t.id)
+		if (!types.length) return res.json([])
+		const { issues } = await jira.search(
+			`project = "${key}" AND issuetype in (${types.join(',')}) ORDER BY created DESC`,
+			['summary', 'status', 'issuetype'],
+			500,
+		)
+		res.json(issues.map(pick))
+	} catch (e) {
+		next(e)
+	}
+})
+
+app.get('/api/projects/:key/issues', async (req, res, next) => {
+	const key = projectKey(req, res)
+	if (!key) return
+	const q = String(req.query.q ?? '').trim().slice(0, 100)
+	if (!q) return res.json([])
+	// A key (SCRUM-12) is looked up directly; anything else is a text search.
+	const jql = ISSUE_KEY.test(q.toUpperCase())
+		? `project = "${key}" AND key = "${q.toUpperCase()}"`
+		: `project = "${key}" AND text ~ "${q.replace(/["\\]/g, ' ')}*" ORDER BY updated DESC`
+	try {
+		const { issues } = await jira.search(jql, ['summary', 'status', 'issuetype'], 20)
+		res.json(issues.map(pick))
+	} catch (e) {
+		if (e instanceof JiraError && (e.status === 400 || e.status === 404)) return res.json([])
+		next(e)
+	}
+})
+
+app.get('/api/projects/:key/labels', async (_req, res, next) => {
+	try {
+		res.json(await jira.labels())
+	} catch (e) {
+		next(e)
+	}
+})
+
+app.get('/api/projects/:key/components', async (req, res, next) => {
+	const key = projectKey(req, res)
+	if (!key) return
+	try {
+		res.json(await jira.components(key))
+	} catch (e) {
+		next(e)
+	}
+})
+
+// How many tickets a view's JQL finds, to try it before saving.
+app.get('/api/projects/:key/jql-count', async (req, res, next) => {
+	const key = projectKey(req, res)
+	if (!key) return
+	const jql = String(req.query.jql ?? '').trim()
+	if (!jql || jql.length > 2000) return res.status(400).json({ error: messages(req).view.jql })
+	try {
+		const { issues, truncated } = await jira.search(viewJql(key, jql), ['summary'], 1000)
+		res.json({ count: issues.length, truncated })
+	} catch (e) {
+		if (e instanceof JiraError && e.status === 400) return res.status(400).json({ error: messages(req).jqlInvalid(e.detail) })
 		next(e)
 	}
 })

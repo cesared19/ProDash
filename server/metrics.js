@@ -33,6 +33,8 @@ export function normalizeIssue(issue) {
 		transitions,
 		initialStatus: transitions[0]?.from ?? f.status?.name ?? 'Sin estado',
 		statusSince: transitions.at(-1)?.at ?? created,
+		labels: Array.isArray(f.labels) ? f.labels : [],
+		components: Array.isArray(f.components) ? f.components.map((c) => c.name).filter(Boolean) : [],
 		parentKey: parent?.key ?? null,
 		epic: parentIsEpic
 			? {
@@ -129,7 +131,23 @@ function median(values) {
  * including some closed before the period (the JQL filters on `updated`).
  * days: period length, or null for the whole history.
  */
-export function buildSummary({ open, closed, days, now = Date.now(), statusDays = {} }) {
+/**
+ * open, closed: the project's tickets. selection: optional test for the
+ * tickets of a saved view; the blocks then show only those. estimateScope
+ * says where the pace and the times come from: the whole project
+ * ('project') or the selection only ('selection').
+ */
+export function buildSummary({
+	open: projectOpen,
+	closed: projectClosed,
+	days,
+	now = Date.now(),
+	statusDays = {},
+	selection = null,
+	estimateScope = 'project',
+}) {
+	const open = selection ? projectOpen.filter(selection) : projectOpen
+	const closed = selection ? projectClosed.filter(selection) : projectClosed
 	const allClosed = closed.filter((i) => i.closedAt != null && !Number.isNaN(i.closedAt))
 	const earliest = Math.min(
 		now - WEEK,
@@ -150,15 +168,27 @@ export function buildSummary({ open, closed, days, now = Date.now(), statusDays 
 		(a, b) => (CATEGORY_ORDER[a.category] ?? 1) - (CATEGORY_ORDER[b.category] ?? 1) || b.count - a.count,
 	)
 
-	const leadTimes = closedInPeriod.map((i) => (i.closedAt - i.created) / DAY).filter((d) => d >= 0)
+	// Estimates learn from the whole project or from the selection only.
+	const fromProject = selection != null && estimateScope === 'project'
+	const estimateClosed = fromProject
+		? projectClosed.filter((i) => i.closedAt != null && !Number.isNaN(i.closedAt) && i.closedAt >= since)
+		: closedInPeriod
+
+	const leadTimes = estimateClosed.map((i) => (i.closedAt - i.created) / DAY).filter((d) => d >= 0)
 	const openAges = open.map((i) => (now - i.created) / DAY).filter((d) => d >= 0)
 
-	const closeRate = closedInPeriod.length / weeks
+	const closeRate = estimateClosed.length / weeks
 	const createdInPeriod =
 		open.filter((i) => i.created >= since).length + closedInPeriod.filter((i) => i.created >= since).length
 	const createRate = createdInPeriod / weeks
 	const etaWeeks = open.length === 0 ? 0 : closeRate > 0 ? open.length / closeRate : null
-	const forecast = statusForecast({ open, closedInPeriod, closeRatePerWeek: closeRate, now, overrides: statusDays })
+	const forecast = statusForecast({
+		open,
+		closedInPeriod: estimateClosed,
+		closeRatePerWeek: closeRate,
+		now,
+		overrides: statusDays,
+	})
 
 	const avgLead = average(leadTimes)
 	const avgAge = average(openAges)
@@ -186,6 +216,7 @@ export function buildSummary({ open, closed, days, now = Date.now(), statusDays 
 	return {
 		generatedAt: new Date(now).toISOString(),
 		periodDays: days,
+		estimateScope: selection ? estimateScope : 'project',
 		periodStart: new Date(since).toISOString(),
 		openCount: open.length,
 		closedCount: closedInPeriod.length,

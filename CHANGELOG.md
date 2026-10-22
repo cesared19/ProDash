@@ -2,6 +2,18 @@
 
 Todos los cambios de ProDash por versión. El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y las versiones, [versionado semántico](https://semver.org/lang/es/).
 
+## [1.3.0] - 2026-10-22
+
+### Agregado
+- **Vistas guardadas**: además del dashboard **General**, se pueden crear vistas con nombre que muestran solo una selección de tickets. Aparecen como pestañas arriba del dashboard y las ve todo el que entra.
+- Botón **Nueva vista** con un asistente para elegir **epics** (con todos sus tickets, también los que se agreguen después), **tickets sueltos** (con sus subtareas), **etiquetas**, **componentes** y **JQL avanzado** (con botón *Probar*). Una vista incluye todo lo que cumpla cualquiera de los criterios.
+- Selector **Estimar con: Histórico del proyecto | Solo esta selección** en cada vista. Quien crea la vista elige el valor por defecto; quien la mira puede cambiarlo.
+- Editar y borrar vistas (el borrado pide confirmación).
+- El PNG lleva el nombre de la vista y con qué se estimó.
+
+### Cambiado
+- Docker: las vistas se guardan en el volumen `prodash-data` (`/app/data/views.json`), que se conserva entre actualizaciones. Sin Docker se guardan en la carpeta `data/` o en `DATA_DIR`.
+
 ## [1.2.0] - 2026-10-21
 
 ### Agregado
@@ -42,6 +54,7 @@ Primera versión, la que corre en el servidor de la empresa.
 - Contraseña compartida; el token de Jira queda en el servidor.
 - `npm run check` para diagnosticar la conexión con Jira.
 
+[1.3.0]: https://github.com/cesared19/ProDash/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/cesared19/ProDash/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/cesared19/ProDash/compare/v1.0.1...v1.1.0
 [1.0.1]: https://github.com/cesared19/ProDash/compare/v1.0.0...v1.0.1

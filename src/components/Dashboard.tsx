@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { api, defaultExcluded, type IssueType, type Summary } from '../api'
+import { api, ApiError, defaultExcluded, type IssueType, type SavedView, type Summary } from '../api'
 import { longDate, periodLabel } from '../format'
 import { useT } from '../i18n'
 import { exportPng, REPORT_WIDTH } from '../exportPng'
@@ -9,6 +9,8 @@ import { EpicsBlock } from './EpicsBlock'
 import { CustomizePanel } from './CustomizePanel'
 import { ChevronDownIcon, ImageIcon, LogoutIcon, RefreshIcon, SlidersIcon } from './icons'
 import { ProjectPicker } from './ProjectPicker'
+import { ViewEditor } from './ViewEditor'
+import { ViewTabs } from './ViewTabs'
 
 const PERIODS: Period[] = [30, 90, 180, 365, 'all']
 
@@ -63,6 +65,8 @@ export function Dashboard({
 	const [exporting, setExporting] = useState(false)
 	const exportRef = useRef<HTMLDivElement>(null)
 	const [epicUi, setEpicUiState] = useState<EpicUi>({})
+	const [views, setViews] = useState<SavedView[] | null>(null)
+	const [editing, setEditing] = useState<SavedView | 'new' | null>(null)
 	const setEpicUi = useCallback(
 		(epicKey: string, value: { expanded: boolean; shown: number }) =>
 			setEpicUiState((current) => ({ ...current, [epicKey]: value })),
@@ -74,6 +78,11 @@ export function Dashboard({
 		setIssueTypes(null)
 		setSummary(null)
 		setEpicUiState({})
+		setViews(null)
+		api.views(key).then(setViews, (e) => {
+			onUnauthorized(e)
+			setViews([])
+		})
 		api.issueTypes(key).then(setIssueTypes, (e) => {
 			onUnauthorized(e)
 			setError((e as Error).message)
@@ -88,8 +97,22 @@ export function Dashboard({
 	const excludedKey = excluded?.join(',')
 	const statusDaysKey = JSON.stringify((key && settings.statusDays[key]) || {})
 
+	// The saved view open for this project; a view someone deleted falls back to General.
+	const selectedId = key ? (settings.selectedView[key] ?? null) : null
+	const activeView = (selectedId && views?.find((v) => v.id === selectedId)) || null
+	const viewsReady = !selectedId || views != null
+	const scope = activeView ? (settings.viewScope[activeView.id] ?? activeView.estimateScope) : null
+	const viewParam = activeView ? `${activeView.id}|${activeView.updatedAt}|${scope}` : ''
+
+	function selectView(id: string | null) {
+		if (!key) return
+		setEpicUiState({})
+		update({ selectedView: { ...settings.selectedView, [key]: id } })
+	}
+
 	const load = useCallback(async (fresh = false) => {
-		if (!key || excludedKey == null) return
+		if (!key || excludedKey == null || !viewsReady) return
+		const [viewId, , viewScope] = viewParam.split('|')
 		setLoading(true)
 		setError(null)
 		try {
@@ -100,15 +123,18 @@ export function Dashboard({
 					excludedKey ? excludedKey.split(',') : [],
 					JSON.parse(statusDaysKey),
 					fresh,
+					viewId ? { id: viewId, scope: viewScope as 'project' | 'selection' } : null,
 				),
 			)
 		} catch (e) {
 			onUnauthorized(e)
+			// The view was deleted elsewhere: refresh the list, which falls back to General.
+			if (e instanceof ApiError && e.status === 404 && viewId) api.views(key).then(setViews, () => {})
 			setError((e as Error).message)
 		} finally {
 			setLoading(false)
 		}
-	}, [key, excludedKey, statusDaysKey, settings.period, onUnauthorized])
+	}, [key, excludedKey, statusDaysKey, settings.period, viewsReady, viewParam, onUnauthorized])
 
 	useEffect(() => {
 		load()
@@ -149,9 +175,13 @@ export function Dashboard({
 		return (
 			<div className={className} ref={ref}>
 				<div className="report-head">
-					<h1>{projectName ?? key}</h1>
+					<h1>
+						{projectName ?? key}
+						{summary?.view && <span className="report-view"> · {summary.view.name}</span>}
+					</h1>
 					<p>
 						{summary ? t.reportLine(longDate(t, summary.generatedAt), periodLabel(t, summary.periodDays)) : ' '}
+						{summary?.view && t.reportScope(t.scope[summary.estimateScope])}
 						{excludedNames.length > 0 && t.excluding(excludedNames.join(', '))}
 						{summary && visibleBlocks.includes('epics') && t.reportEpicView(t[settings.epicView])}
 					</p>
@@ -222,6 +252,18 @@ export function Dashboard({
 				</div>
 			</header>
 
+			{views && (
+				<ViewTabs
+					views={views}
+					active={activeView}
+					scope={scope}
+					onSelect={selectView}
+					onNew={() => setEditing('new')}
+					onEdit={() => activeView && setEditing(activeView)}
+					onScope={(s) => activeView && update({ viewScope: { ...settings.viewScope, [activeView.id]: s } })}
+				/>
+			)}
+
 			{mock && <p className="banner">{t.demo}</p>}
 			{error && (
 				<p className="banner error" role="alert">
@@ -245,6 +287,27 @@ export function Dashboard({
 					}}
 					onClose={() => setPicking(false)}
 					onUnauthorized={onUnauthorized}
+				/>
+			)}
+			{editing && key && (
+				<ViewEditor
+					projectKey={key}
+					view={editing === 'new' ? null : editing}
+					onClose={() => setEditing(null)}
+					onSaved={(saved) => {
+						setViews((list) =>
+							list?.some((v) => v.id === saved.id)
+								? list.map((v) => (v.id === saved.id ? saved : v))
+								: [...(list ?? []), saved],
+						)
+						setEditing(null)
+						selectView(saved.id)
+					}}
+					onDeleted={(id) => {
+						setViews((list) => (list ?? []).filter((v) => v.id !== id))
+						setEditing(null)
+						selectView(null)
+					}}
 				/>
 			)}
 			{customizing && (

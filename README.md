@@ -12,6 +12,12 @@ Muestra:
 - **Por epic**: cada epic con sus tickets abiertos y los cerrados en el periodo, y una barra por estado. Al tocarla se despliegan sus tickets con enlace a Jira. Las subtareas cuentan en la epic de su ticket padre; los tickets sin epic van en el grupo *Sin epic*.
   Con el selector **Ritmo | Estado | Entrega** se ve cuánto falta para cerrar cada epic a su ritmo de cierre, según el estado de sus tickets, o hasta su fecha de entrega (*Due date* de la epic en Jira), con una etiqueta que indica si llega a tiempo.
 
+### Vistas
+
+Además del dashboard **General** se pueden crear **vistas** con nombre (por ejemplo, una por producto), que aparecen como pestañas arriba y muestran solo una selección de tickets. Con **Nueva vista** se eligen epics (con todos sus tickets), tickets sueltos, etiquetas, componentes o una consulta JQL; entra todo lo que cumpla cualquiera de los criterios. Las vistas son compartidas: las ve todo el que entra al dashboard.
+
+En cada vista, **Estimar con** elige de dónde salen el ritmo de cierre y los tiempos por estado: del **histórico de todo el proyecto** (más datos) o **solo de los tickets de la vista** (más específico). Los tipos de ticket excluidos en Personalizar tampoco cuentan dentro de las vistas.
+
 Se puede personalizar qué bloques se ven, su orden, qué tipos de ticket no se cuentan, el idioma (español o inglés) y activar el texto extra grande. Las preferencias se guardan en cada dispositivo; el idioma inicial es el del navegador y también se puede cambiar en la pantalla de entrada. Los nombres de estados y tipos de ticket se muestran tal como están en Jira.
 
 ## Puesta en marcha en el Mac
@@ -56,6 +62,8 @@ git fetch --tags
 git checkout v1.1.0
 docker compose up -d --build
 ```
+
+Las vistas guardadas están en el volumen de Docker `prodash-data` y se conservan al actualizar. Para hacer una copia: `docker compose cp prodash:/app/data/views.json ./views-backup.json`.
 
 **Volver a la versión anterior** si algo falla: lo mismo con la etiqueta anterior (`git checkout v1.0.1` y `docker compose up -d --build`). El `.env` no cambia entre versiones.
 

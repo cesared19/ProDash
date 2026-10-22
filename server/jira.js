@@ -81,6 +81,24 @@ export function createJiraClient({ baseUrl, email, token }) {
 			}))
 		},
 
+		// Labels are global in Jira Cloud (not per project).
+		async labels() {
+			const labels = []
+			let startAt = 0
+			for (;;) {
+				const page = await request('GET', `/rest/api/3/label?maxResults=1000&startAt=${startAt}`)
+				labels.push(...page.values)
+				if (page.isLast || page.values.length === 0 || labels.length >= 5000) break
+				startAt += page.values.length
+			}
+			return labels
+		},
+
+		async components(projectKey) {
+			const list = await request('GET', `/rest/api/3/project/${encodeURIComponent(projectKey)}/components`)
+			return list.map((c) => c.name)
+		},
+
 		// Uses the enhanced search endpoint (the old /search was retired in 2025).
 		// `expand` can be 'changelog' to include each issue's history.
 		async search(jql, fields, limit, expand) {
