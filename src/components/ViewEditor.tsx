@@ -3,7 +3,16 @@ import { api, type EstimateScope, type PickedIssue, type SavedView, type ViewInp
 import { useT } from '../i18n'
 import { CloseIcon } from './icons'
 
-const EMPTY: ViewInput = { name: '', epics: [], issues: [], labels: [], components: [], jql: '', estimateScope: 'project' }
+const EMPTY: ViewInput = {
+	name: '',
+	epics: [],
+	issues: [],
+	labels: [],
+	components: [],
+	jql: '',
+	estimateScope: 'project',
+	bugBreakdown: false,
+}
 
 function toggle(list: string[], item: string) {
 	return list.includes(item) ? list.filter((i) => i !== item) : [...list, item]
@@ -269,6 +278,17 @@ export function ViewEditor({
 					))}
 				</div>
 				<p className="muted">{t.scopeHelp[draft.estimateScope]}</p>
+
+				<h3>{t.bugBreakdown}</h3>
+				<label className="switch-row">
+					<input
+						type="checkbox"
+						checked={draft.bugBreakdown}
+						onChange={(e) => patch({ bugBreakdown: e.target.checked })}
+					/>
+					<span>{t.bugBreakdown}</span>
+				</label>
+				<p className="muted">{t.bugBreakdownHelp}</p>
 
 				<div className="editor-footer">
 					<p className="selected-summary">

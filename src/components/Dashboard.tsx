@@ -5,6 +5,7 @@ import { useT } from '../i18n'
 import { exportPng, REPORT_WIDTH } from '../exportPng'
 import type { BlockId, Period, Settings } from '../settings'
 import { ClosedBlock, EtaBlock, OpenBlock, StatusesBlock, TimesBlock, TrajectoryBlock } from './Blocks'
+import { BugsBlock } from './BugsBlock'
 import { EpicsBlock } from './EpicsBlock'
 import { CustomizePanel } from './CustomizePanel'
 import { ChevronDownIcon, ImageIcon, LogoutIcon, RefreshIcon, SlidersIcon } from './icons'
@@ -34,6 +35,7 @@ const BLOCK_VIEWS: Record<BlockId, { Component: (p: BlockProps) => JSX.Element; 
 	times: { Component: TimesBlock, size: 'half' },
 	trajectory: { Component: TrajectoryBlock, size: 'half' },
 	epics: { Component: EpicsBlock, size: 'full' },
+	bugs: { Component: BugsBlock, size: 'half' },
 }
 
 const REFRESH_MS = 5 * 60 * 1000
@@ -103,6 +105,8 @@ export function Dashboard({
 	const viewsReady = !selectedId || views != null
 	const scope = activeView ? (settings.viewScope[activeView.id] ?? activeView.estimateScope) : null
 	const viewParam = activeView ? `${activeView.id}|${activeView.updatedAt}|${scope}` : ''
+	// Views decide the bug breakdown themselves; General follows Customize.
+	const generalBugs = !activeView && settings.bugsGeneral
 
 	function selectView(id: string | null) {
 		if (!key) return
@@ -124,6 +128,7 @@ export function Dashboard({
 					JSON.parse(statusDaysKey),
 					fresh,
 					viewId ? { id: viewId, scope: viewScope as 'project' | 'selection' } : null,
+					generalBugs,
 				),
 			)
 		} catch (e) {
@@ -134,7 +139,7 @@ export function Dashboard({
 		} finally {
 			setLoading(false)
 		}
-	}, [key, excludedKey, statusDaysKey, settings.period, viewsReady, viewParam, onUnauthorized])
+	}, [key, excludedKey, statusDaysKey, settings.period, viewsReady, viewParam, generalBugs, onUnauthorized])
 
 	useEffect(() => {
 		load()
@@ -169,7 +174,9 @@ export function Dashboard({
 	}
 
 	const excludedNames = issueTypes?.filter((t) => excluded?.includes(t.id)).map((t) => t.name) ?? []
-	const visibleBlocks = settings.order.filter((id) => !settings.hidden.includes(id))
+	const visibleBlocks = settings.order.filter(
+		(id) => !settings.hidden.includes(id) && (id !== 'bugs' || summary?.bugs != null),
+	)
 
 	function renderReport(className: string, ref?: React.Ref<HTMLDivElement>) {
 		return (

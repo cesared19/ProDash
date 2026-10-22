@@ -83,6 +83,7 @@ export function validateView(input) {
 		components: stringList(input.components),
 		jql: String(input.jql ?? '').trim(),
 		estimateScope: input.estimateScope === 'selection' ? 'selection' : 'project',
+		bugBreakdown: input.bugBreakdown === true,
 	}
 	if (view.jql.length > 2000) throw new ViewError('jql')
 	if (!view.epics.length && !view.issues.length && !view.labels.length && !view.components.length && !view.jql) {

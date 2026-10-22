@@ -2,9 +2,9 @@ import { useCallback, useState } from 'react'
 import type { EstimateScope } from './api'
 import { browserLang, type Lang } from './i18n'
 
-export type BlockId = 'open' | 'closed' | 'eta' | 'statuses' | 'times' | 'trajectory' | 'epics'
+export type BlockId = 'open' | 'closed' | 'eta' | 'statuses' | 'times' | 'trajectory' | 'epics' | 'bugs'
 
-export const BLOCKS: BlockId[] = ['open', 'closed', 'eta', 'statuses', 'times', 'trajectory', 'epics']
+export const BLOCKS: BlockId[] = ['open', 'closed', 'eta', 'statuses', 'bugs', 'times', 'trajectory', 'epics']
 
 export type Period = 30 | 90 | 180 | 365 | 'all'
 
@@ -25,6 +25,8 @@ export type Settings = {
 	// Saved view open per project (absent = General), and the estimate scope chosen per view.
 	selectedView: Record<string, string | null>
 	viewScope: Record<string, EstimateScope>
+	// Show the bug breakdown on the General dashboard (views have their own switch).
+	bugsGeneral: boolean
 }
 
 const DEFAULTS: Settings = {
@@ -39,6 +41,7 @@ const DEFAULTS: Settings = {
 	statusDays: {},
 	selectedView: {},
 	viewScope: {},
+	bugsGeneral: false,
 }
 
 const STORAGE_KEY = 'prodash-settings'

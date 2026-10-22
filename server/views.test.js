@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import test from 'node:test'
-import { buildSummary, normalizeIssue } from './metrics.js'
+import { buildSummary, isBugType, normalizeIssue, summarizeBugs } from './metrics.js'
 import { createViewStore, selectionMatcher, validateView, ViewError, viewJql } from './views.js'
 
 const DAY = 24 * 60 * 60 * 1000
@@ -27,7 +27,8 @@ function issue(key, { done = false, parent, labels = [], components = [], create
 
 test('validates views and rejects empty or broken ones', () => {
 	const v = validateView({ name: '  Producto A ', epics: ['SCRUM-1', 'SCRUM-1'], labels: ['a'], extra: 'x' })
-	assert.deepEqual(v, { name: 'Producto A', epics: ['SCRUM-1'], issues: [], labels: ['a'], components: [], jql: '', estimateScope: 'project' })
+	assert.deepEqual(v, { name: 'Producto A', epics: ['SCRUM-1'], issues: [], labels: ['a'], components: [], jql: '', estimateScope: 'project', bugBreakdown: false })
+	assert.equal(validateView({ name: 'B', labels: ['b'], bugBreakdown: true }).bugBreakdown, true)
 	assert.throws(() => validateView({ name: 'Vacía' }), (e) => e instanceof ViewError && e.message === 'empty')
 	assert.throws(() => validateView({ name: '', labels: ['a'] }), (e) => e.message === 'name')
 	assert.throws(() => validateView({ name: 'X', epics: ['not a key'] }), (e) => e.message === 'list')
@@ -84,4 +85,34 @@ test('blocks show the selection; estimates come from the project or from the sel
 	assert.equal(own.trajectory.etaWeeks, 8)
 	assert.equal(own.statusForecast.basedOn, 1)
 	assert.equal(project.statusForecast.basedOn, 8)
+})
+
+test('counts open bugs by stage and by priority, in Jira priority order', () => {
+	const bug = (key, category, priority) =>
+		normalizeIssue({
+			key,
+			fields: {
+				status: { name: category === 'new' ? 'Por hacer' : 'En curso', statusCategory: { key: category } },
+				created: at(5),
+				priority: priority ? { id: priority[0], name: priority[1] } : undefined,
+			},
+		})
+	const s = summarizeBugs([
+		bug('B-1', 'new', ['3', 'Medium']),
+		bug('B-2', 'indeterminate', ['1', 'Highest']),
+		bug('B-3', 'new', ['3', 'Medium']),
+		bug('B-4', 'new', null),
+	])
+	assert.equal(s.total, 4)
+	assert.equal(s.todo, 3)
+	assert.equal(s.inProgress, 1)
+	assert.deepEqual(s.byPriority, [
+		{ name: 'Highest', rank: 1, count: 1 },
+		{ name: 'Medium', rank: 3, count: 2 },
+		{ name: null, rank: null, count: 1 },
+	])
+	assert.ok(isBugType({ name: 'Error', hierarchyLevel: 0 }))
+	assert.ok(isBugType({ name: 'Bug', hierarchyLevel: 0 }))
+	assert.ok(!isBugType({ name: 'Debugging task', hierarchyLevel: 0 }))
+	assert.ok(!isBugType({ name: 'Epic', hierarchyLevel: 1 }))
 })

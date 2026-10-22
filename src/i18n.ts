@@ -126,6 +126,17 @@ const es = {
 	today: 'Hoy',
 	goal: (date: string) => `Meta ${date}`,
 	openCount: 'abiertos',
+	// Bugs
+	bugsTitle: 'Bugs abiertos',
+	bugsOpen: (n: number): string => (n === 1 ? 'bug sin cerrar' : 'bugs sin cerrar'),
+	bugsTodo: (n: string) => `${n} por hacer`,
+	bugsInProgress: (n: string) => `${n} en curso`,
+	bugsByPriority: 'Por prioridad',
+	noPriority: 'Sin prioridad',
+	noBugs: 'No hay bugs abiertos.',
+	bugBreakdown: 'Desglose de bugs',
+	bugBreakdownHelp: 'Añade un bloque con los bugs y errores sin cerrar y su prioridad. Se cuentan aunque estén entre los tipos excluidos.',
+	bugsGeneral: 'Mostrar el desglose de bugs en General',
 	// Saved views
 	views: 'Vistas',
 	general: 'General',
@@ -198,6 +209,7 @@ const es = {
 		times: 'Comparación de tiempos',
 		trajectory: 'Trayectoria',
 		epics: 'Por epic',
+		bugs: 'Bugs',
 	} satisfies Record<BlockId, string>,
 }
 
@@ -314,6 +326,16 @@ const en: Messages = {
 	today: 'Today',
 	goal: (date: string) => `Goal ${date}`,
 	openCount: 'open',
+	bugsTitle: 'Open bugs',
+	bugsOpen: (n: number) => (n === 1 ? 'open bug' : 'open bugs'),
+	bugsTodo: (n: string) => `${n} to do`,
+	bugsInProgress: (n: string) => `${n} in progress`,
+	bugsByPriority: 'By priority',
+	noPriority: 'No priority',
+	noBugs: 'There are no open bugs.',
+	bugBreakdown: 'Bug breakdown',
+	bugBreakdownHelp: 'Adds a block with the bugs and errors not yet closed and their priority. They count even if their type is excluded.',
+	bugsGeneral: 'Show the bug breakdown on General',
 	views: 'Views',
 	general: 'General',
 	newView: 'New view',
@@ -383,6 +405,7 @@ const en: Messages = {
 		times: 'Time comparison',
 		trajectory: 'Trajectory',
 		epics: 'By epic',
+		bugs: 'Bugs',
 	},
 }
 

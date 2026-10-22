@@ -97,6 +97,16 @@ export function CustomizePanel({
 					<span>{t.bigText}</span>
 				</label>
 
+				<h3>{t.bugBreakdown}</h3>
+				<label className="switch-row">
+					<input
+						type="checkbox"
+						checked={settings.bugsGeneral}
+						onChange={(e) => update({ bugsGeneral: e.target.checked })}
+					/>
+					<span>{t.bugsGeneral}</span>
+				</label>
+
 				<h3>{t.blocksTitle}</h3>
 				<p className="muted">{t.blocksHelp}</p>
 				<ul className="order-list">

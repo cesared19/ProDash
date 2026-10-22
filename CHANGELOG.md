@@ -10,6 +10,7 @@ Todos los cambios de ProDash por versión. El formato sigue [Keep a Changelog](h
 - Selector **Estimar con: Histórico del proyecto | Solo esta selección** en cada vista. Quien crea la vista elige el valor por defecto; quien la mira puede cambiarlo.
 - Editar y borrar vistas (el borrado pide confirmación).
 - El PNG lleva el nombre de la vista y con qué se estimó.
+- **Desglose de bugs**: interruptor al crear o editar una vista (y en Personalizar para el dashboard General) que añade el bloque **Bugs abiertos** con el total de bugs y errores sin cerrar, cuántos están por hacer y en curso, y un desglose por **prioridad** de Jira. Los bugs se cuentan aunque su tipo esté excluido de los demás bloques; en una vista entran los que cumplen sus criterios.
 
 ### Cambiado
 - Docker: las vistas se guardan en el volumen `prodash-data` (`/app/data/views.json`), que se conserva entre actualizaciones. Sin Docker se guardan en la carpeta `data/` o en `DATA_DIR`.

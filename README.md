@@ -18,6 +18,8 @@ Además del dashboard **General** se pueden crear **vistas** con nombre (por eje
 
 En cada vista, **Estimar con** elige de dónde salen el ritmo de cierre y los tiempos por estado: del **histórico de todo el proyecto** (más datos) o **solo de los tickets de la vista** (más específico). Los tipos de ticket excluidos en Personalizar tampoco cuentan dentro de las vistas.
 
+Con el interruptor **Desglose de bugs** (en cada vista, o en Personalizar para General) aparece el bloque **Bugs abiertos**: el total de bugs y errores sin cerrar, cuántos están por hacer y en curso, y cuántos hay de cada prioridad de Jira. Se cuentan aunque el tipo Error/Bug esté excluido de los demás bloques.
+
 Se puede personalizar qué bloques se ven, su orden, qué tipos de ticket no se cuentan, el idioma (español o inglés) y activar el texto extra grande. Las preferencias se guardan en cada dispositivo; el idioma inicial es el del navegador y también se puede cambiar en la pantalla de entrada. Los nombres de estados y tipos de ticket se muestran tal como están en Jira.
 
 ## Puesta en marcha en el Mac

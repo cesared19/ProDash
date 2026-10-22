@@ -34,6 +34,7 @@ export function normalizeIssue(issue) {
 		initialStatus: transitions[0]?.from ?? f.status?.name ?? 'Sin estado',
 		statusSince: transitions.at(-1)?.at ?? created,
 		labels: Array.isArray(f.labels) ? f.labels : [],
+		priority: f.priority ? { name: f.priority.name, id: f.priority.id } : null,
 		components: Array.isArray(f.components) ? f.components.map((c) => c.name).filter(Boolean) : [],
 		parentKey: parent?.key ?? null,
 		epic: parentIsEpic
@@ -262,4 +263,31 @@ export function applyDueDates(epics, dueByKey, now = Date.now()) {
 			statusDelivery: compare(epic.statusEtaDate, epic.statusDelivery),
 		}
 	})
+}
+
+// Issue types counted as bugs (same names the client excludes by default).
+export function isBugType(type) {
+	return (type.hierarchyLevel ?? 0) < 1 && /(?<!\p{L})(bug|error|defect|defecto)(?!\p{L})/iu.test(type.name)
+}
+
+/**
+ * Open bugs (not in the Done category) by stage and by Jira priority.
+ * Priorities keep Jira's order: a lower id is a higher priority.
+ */
+export function summarizeBugs(bugs) {
+	const byPriority = new Map()
+	for (const bug of bugs) {
+		const name = bug.priority?.name ?? null
+		const entry = byPriority.get(name) ?? { name, rank: Number(bug.priority?.id) || Infinity, count: 0 }
+		entry.count++
+		byPriority.set(name, entry)
+	}
+	return {
+		total: bugs.length,
+		todo: bugs.filter((b) => b.category === 'new').length,
+		inProgress: bugs.filter((b) => b.category !== 'new').length,
+		byPriority: [...byPriority.values()]
+			.sort((a, b) => a.rank - b.rank || (a.name ?? '').localeCompare(b.name ?? ''))
+			.map(({ name, rank, count }) => ({ name, rank: Number.isFinite(rank) ? rank : null, count })),
+	}
 }

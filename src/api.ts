@@ -82,6 +82,7 @@ export type Summary = {
 	statusForecast: StatusForecast | null
 	view: { id: string; name: string } | null
 	estimateScope: EstimateScope
+	bugs: BugSummary | null
 	jiraBaseUrl: string | null
 	truncated: boolean
 }
@@ -89,6 +90,14 @@ export type Summary = {
 export type Session = { authenticated: boolean; mock: boolean; version?: string }
 
 export type EstimateScope = 'project' | 'selection'
+
+// Open bugs; priorities in Jira order (name null = no priority).
+export type BugSummary = {
+	total: number
+	todo: number
+	inProgress: number
+	byPriority: { name: string | null; rank: number | null; count: number }[]
+}
 
 export type SavedView = {
 	id: string
@@ -100,6 +109,7 @@ export type SavedView = {
 	components: string[]
 	jql: string
 	estimateScope: EstimateScope
+	bugBreakdown: boolean
 	updatedAt: string
 }
 
@@ -150,11 +160,13 @@ export const api = {
 		statusDays: Record<string, number>,
 		fresh: boolean,
 		view: { id: string; scope?: EstimateScope } | null,
+		bugs = false,
 	) =>
 		request<Summary>(
 			`/api/projects/${encodeURIComponent(key)}/summary?days=${days}&exclude=${exclude.join(',')}` +
 				`&statusDays=${encodeURIComponent(JSON.stringify(statusDays))}${fresh ? '&fresh=1' : ''}` +
-				(view ? `&view=${encodeURIComponent(view.id)}${view.scope ? `&scope=${view.scope}` : ''}` : ''),
+				(view ? `&view=${encodeURIComponent(view.id)}${view.scope ? `&scope=${view.scope}` : ''}` : '') +
+				(bugs ? '&bugs=1' : ''),
 		),
 	views: (key: string) => request<SavedView[]>(`/api/projects/${encodeURIComponent(key)}/views`),
 	createView: (key: string, view: ViewInput) =>

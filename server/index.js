@@ -7,7 +7,7 @@ import express from 'express'
 import { loadEnvFile, readConfig } from './env.js'
 import { createJiraClient, JiraError } from './jira.js'
 import { createMockClient } from './mock.js'
-import { applyDueDates, buildSummary, normalizeIssue } from './metrics.js'
+import { applyDueDates, buildSummary, isBugType, normalizeIssue, summarizeBugs } from './metrics.js'
 import { messages } from './messages.js'
 import { createViewStore, selectionMatcher, ViewError, viewJql } from './views.js'
 
@@ -182,7 +182,9 @@ app.get('/api/projects/:key/summary', async (req, res, next) => {
 		return res.status(404).json({ error: messages(req).viewNotFound })
 	}
 	const estimateScope = req.query.scope === 'selection' || req.query.scope === 'project' ? req.query.scope : view?.estimateScope
-	const cacheKey = JSON.stringify([key, days, exclude, statusDays, view?.id, view?.updatedAt, estimateScope])
+	// Bug breakdown: set per view, or asked for by the General dashboard.
+	const withBugs = view ? Boolean(view.bugBreakdown) : req.query.bugs === '1'
+	const cacheKey = JSON.stringify([key, days, exclude, statusDays, view?.id, view?.updatedAt, estimateScope, withBugs])
 	const cached = summaryCache.get(cacheKey)
 	if (cached && cached.until > Date.now() && req.query.fresh !== '1') return res.json(cached.body)
 	try {
@@ -199,6 +201,20 @@ app.get('/api/projects/:key/summary', async (req, res, next) => {
 		])
 		const openIssues = open.issues.map(normalizeIssue)
 		const closedIssues = closed.issues.map(normalizeIssue)
+		// Open bugs are read on their own: their type is usually excluded from the other blocks.
+		let bugIssues = null
+		if (withBugs) {
+			const bugTypes = (await jira.issueTypes(key)).filter(isBugType).map((t) => t.id)
+			bugIssues = bugTypes.length
+				? (
+						await jira.search(
+							`project = "${key}" AND issuetype in (${bugTypes.join(',')}) AND statusCategory != Done`,
+							['summary', 'status', 'priority', 'parent', 'labels', 'components'],
+							MAX_ISSUES,
+						)
+					).issues.map(normalizeIssue)
+				: []
+		}
 		let selection = null
 		if (view) {
 			let jqlKeys
@@ -213,7 +229,7 @@ app.get('/api/projects/:key/summary', async (req, res, next) => {
 					throw e
 				}
 			}
-			selection = selectionMatcher(view, [...openIssues, ...closedIssues], jqlKeys)
+			selection = selectionMatcher(view, [...openIssues, ...closedIssues, ...(bugIssues ?? [])], jqlKeys)
 		}
 		const summary = buildSummary({
 			open: openIssues,
@@ -228,6 +244,7 @@ app.get('/api/projects/:key/summary', async (req, res, next) => {
 			...summary,
 			projectKey: key,
 			view: view ? { id: view.id, name: view.name } : null,
+			bugs: bugIssues ? summarizeBugs(selection ? bugIssues.filter(selection) : bugIssues) : null,
 			jiraBaseUrl: config.mock ? null : config.jira.baseUrl,
 			truncated: open.truncated || closed.truncated,
 		}

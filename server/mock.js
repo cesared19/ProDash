@@ -118,6 +118,7 @@ function generate(projectKey) {
 				summary: SUMMARIES[Math.floor(rand() * SUMMARIES.length)],
 				labels: rand() < 0.5 ? ['producto-a'] : rand() < 0.8 ? ['producto-b'] : ['producto-b', 'urgente'],
 				components: [{ name: COMPONENTS[Math.floor(rand() * COMPONENTS.length)] }],
+				priority: PRIORITIES[Math.min(4, Math.floor(rand() * rand() * 6))],
 				parent,
 				created: new Date(created).toISOString(),
 				resolutiondate: closed ? new Date(closed).toISOString() : null,
@@ -133,6 +134,7 @@ function generate(projectKey) {
 
 // Two products sharing one Jira project, told apart by label and component.
 const LABELS = ['producto-a', 'producto-b', 'urgente']
+const PRIORITIES = ['Highest', 'High', 'Medium', 'Low', 'Lowest'].map((name, i) => ({ id: String(i + 1), name }))
 const COMPONENTS = ['App', 'Backend', 'Web']
 
 export function createMockClient() {
@@ -166,7 +168,14 @@ export function createMockClient() {
 			}
 			const key = jql.match(/project = "([^"]+)"/)?.[1] ?? 'APP'
 			// Pickers of the view editor.
-			if (/issuetype in \(/.test(jql)) {
+			const typeIds = jql.match(/issuetype in \(([^)]*)\)/)?.[1]?.split(',')
+			if (typeIds && !typeIds.includes('10005')) {
+				const issues = generate(key).filter(
+					(i) => typeIds.includes(i.typeId) && i.fields.status.statusCategory.key !== 'done',
+				)
+				return { issues, truncated: false }
+			}
+			if (typeIds) {
 				return {
 					issues: EPICS.map((e, i) => ({
 						key: `${key}-${EPIC_KEY_BASE + i + 1}`,
