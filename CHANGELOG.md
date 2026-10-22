@@ -2,6 +2,11 @@
 
 Todos los cambios de ProDash por versión. El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y las versiones, [versionado semántico](https://semver.org/lang/es/).
 
+## [1.3.1] - 2026-10-23
+
+### Corregido
+- En el PNG, la línea del reporte (fecha, periodo, vista…) ya no queda pegada a los bloques: la cabecera tiene más espacio y un título algo más grande.
+
 ## [1.3.0] - 2026-10-22
 
 ### Agregado
@@ -55,6 +60,7 @@ Primera versión, la que corre en el servidor de la empresa.
 - Contraseña compartida; el token de Jira queda en el servidor.
 - `npm run check` para diagnosticar la conexión con Jira.
 
+[1.3.1]: https://github.com/cesared19/ProDash/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/cesared19/ProDash/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/cesared19/ProDash/compare/v1.1.0...v1.2.0
 [1.1.0]: https://github.com/cesared19/ProDash/compare/v1.0.1...v1.1.0
