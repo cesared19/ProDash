@@ -1,14 +1,16 @@
-import type { Delivery, EpicGroup } from '../api'
+import type { Delivery, EpicGroup, StuckTicket } from '../api'
 import { count, duration, durationText, periodLabel, shortDate } from '../format'
 import { useT, type Messages } from '../i18n'
 import type { EpicView } from '../settings'
 import { Card, statusTones } from './Blocks'
 import type { BlockProps } from './Dashboard'
+import { timesText } from './StuckBlock'
 import {
 	AlertIcon,
 	CheckCircleIcon,
 	ChevronDownIcon,
 	ClockIcon,
+	HourglassIcon,
 	FlagIcon,
 	GridIcon,
 	LayersIcon,
@@ -71,6 +73,7 @@ function EpicRow({
 	view,
 	now,
 	byStatusAvailable,
+	stuckByKey,
 	ui,
 	setUi,
 }: {
@@ -80,6 +83,7 @@ function EpicRow({
 	view: EpicView
 	now: number
 	byStatusAvailable: boolean
+	stuckByKey: Map<string, StuckTicket>
 	ui: { expanded: boolean; shown: number } | undefined
 	setUi: (value: { expanded: boolean; shown: number }) => void
 }) {
@@ -149,8 +153,28 @@ function EpicRow({
 					<ul className="issue-list">
 						{visible.map((issue) => (
 							<li key={issue.key} className="issue-row">
-								<span className={`status-pill ${issue.category === 'done' ? 'tone-closed' : toneOf(issue.status, issue.category)}`}>
-									{issue.status}
+								<span className="issue-status">
+									<span className={`status-pill ${issue.category === 'done' ? 'tone-closed' : toneOf(issue.status, issue.category)}`}>
+										{issue.status}
+									</span>
+									{issue.stuck && stuckByKey.has(issue.key) && (
+										<span
+											className={`stuck-icon ${issue.stuck === 'severe' ? 'severe' : 'warning'}`}
+											role="img"
+											aria-label={t.stuckIcon(
+												t.stuckLevel[issue.stuck],
+												durationText(t, stuckByKey.get(issue.key)!.days),
+												timesText(stuckByKey.get(issue.key)!.times),
+											)}
+											title={t.stuckIcon(
+												t.stuckLevel[issue.stuck],
+												durationText(t, stuckByKey.get(issue.key)!.days),
+												timesText(stuckByKey.get(issue.key)!.times),
+											)}
+										>
+											<HourglassIcon />
+										</span>
+									)}
 								</span>
 								{jiraBaseUrl ? (
 									<a className="issue-key" href={`${jiraBaseUrl}/browse/${issue.key}`} target="_blank" rel="noreferrer">
@@ -181,6 +205,7 @@ export function EpicsBlock({ summary, settings, update, epicUi, setEpicUi }: Blo
 	const t = useT()
 	const view = settings.epicView
 	const forecast = summary.statusForecast
+	const stuckByKey = new Map(summary.stuck.items.map((i) => [i.key, i]))
 	const viewHelp = {
 		pace: t.paceHelp,
 		status: forecast ? `${t.statusHelp(count(t, forecast.basedOn))}${forecast.basedOn < 10 ? ` ${t.fewData}` : ''}` : t.noStatusForecast,
@@ -227,6 +252,7 @@ export function EpicsBlock({ summary, settings, update, epicUi, setEpicUi }: Blo
 								view={view}
 								now={now}
 								byStatusAvailable={forecast != null}
+								stuckByKey={stuckByKey}
 								ui={epicUi[epic.key ?? '-']}
 								setUi={(value) => setEpicUi(epic.key ?? '-', value)}
 							/>

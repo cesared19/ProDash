@@ -179,3 +179,9 @@ export const GlobeIcon = (p: P) => (
 		<path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20" />
 	</Icon>
 )
+
+export const HourglassIcon = (p: P) => (
+	<Icon {...p}>
+		<path d="M6 2h12M6 22h12M7 2v4l5 6-5 6v4M17 2v4l-5 6 5 6v4" />
+	</Icon>
+)

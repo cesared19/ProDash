@@ -1,4 +1,5 @@
 import { statusForecast } from './forecast.js'
+import { findStuck } from './stuck.js'
 
 const DAY = 24 * 60 * 60 * 1000
 const WEEK = 7 * DAY
@@ -56,7 +57,7 @@ const MAX_ISSUES_PER_EPIC = 200
  * Issues without an epic go to a last group with key null.
  * Each group gets its own pace: closed in the period ÷ `weeks`.
  */
-export function buildEpics(open, closedInPeriod, { weeks = 1, now = Date.now(), forecast = null } = {}) {
+export function buildEpics(open, closedInPeriod, { weeks = 1, now = Date.now(), forecast = null, stuckLevel = new Map() } = {}) {
 	const all = [...open, ...closedInPeriod]
 	const byKey = new Map(all.map((i) => [i.key, i]))
 	const groups = new Map()
@@ -110,6 +111,7 @@ export function buildEpics(open, closedInPeriod, { weeks = 1, now = Date.now(), 
 					summary: i.summary,
 					status: i.status,
 					category: i.category,
+					stuck: stuckLevel.get(i.key) ?? null,
 				})),
 			}
 		})
@@ -190,6 +192,8 @@ export function buildSummary({
 		now,
 		overrides: statusDays,
 	})
+	// What is "usual" in each status comes from the same tickets as the estimates.
+	const stuck = findStuck({ open, learnFrom: [...estimateClosed, ...(fromProject ? projectOpen : open)], now })
 
 	const avgLead = average(leadTimes)
 	const avgAge = average(openAges)
@@ -235,7 +239,8 @@ export function buildSummary({
 			health,
 		},
 		history,
-		epics: buildEpics(open, closedInPeriod, { weeks, now, forecast }),
+		epics: buildEpics(open, closedInPeriod, { weeks, now, forecast, stuckLevel: stuck.levelByKey }),
+		stuck: { count: stuck.count, items: stuck.items },
 		statusForecast: forecast ? { ...forecast, eta: undefined } : null,
 	}
 }
