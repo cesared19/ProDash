@@ -29,7 +29,7 @@ export function Menu({
 
 	const close = () => {
 		setOpen(false)
-		button.current?.focus()
+		button.current?.focus({ preventScroll: true })
 	}
 
 	useEffect(() => {
