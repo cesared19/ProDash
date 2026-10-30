@@ -2,6 +2,13 @@
 
 Todos los cambios de ProDash por versión. El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y las versiones, [versionado semántico](https://semver.org/lang/es/).
 
+## [1.4.0] - 2026-10-30
+
+### Cambiado
+- **Barra superior más simple**, en una sola fila: menú **☰** (Actualizar, Personalizar, Idioma, Salir y la versión), **proyecto**, menú **Vista** (General y las vistas guardadas, *Estimar con*, *Editar vista* y *Nueva vista*), menú **Periodo** y **Descargar PNG**. Reemplaza las pestañas de vistas y la barra *Estimar con*.
+- Los menús se cierran con Esc o tocando fuera y se recorren con las flechas. Los submenús (*Estimar con*, *Idioma*) se abren dentro del mismo menú, así funcionan igual con el dedo.
+- En pantallas estrechas la barra ocupa dos filas: menú, proyecto y PNG arriba; vista y periodo debajo. En el móvil, Descargar PNG queda como ícono.
+
 ## [1.3.2] - 2026-10-30
 
 ### Corregido
@@ -65,6 +72,7 @@ Primera versión, la que corre en el servidor de la empresa.
 - Contraseña compartida; el token de Jira queda en el servidor.
 - `npm run check` para diagnosticar la conexión con Jira.
 
+[1.4.0]: https://github.com/cesared19/ProDash/compare/v1.3.2...v1.4.0
 [1.3.2]: https://github.com/cesared19/ProDash/compare/v1.3.1...v1.3.2
 [1.3.1]: https://github.com/cesared19/ProDash/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/cesared19/ProDash/compare/v1.2.0...v1.3.0

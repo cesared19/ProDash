@@ -1,17 +1,30 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, ApiError, defaultExcluded, type IssueType, type SavedView, type Summary } from '../api'
 import { longDate, periodLabel } from '../format'
-import { useT } from '../i18n'
+import { LANGS, useT } from '../i18n'
 import { exportPng, REPORT_WIDTH } from '../exportPng'
 import type { BlockId, Period, Settings } from '../settings'
 import { ClosedBlock, EtaBlock, OpenBlock, StatusesBlock, TimesBlock, TrajectoryBlock } from './Blocks'
 import { BugsBlock } from './BugsBlock'
 import { EpicsBlock } from './EpicsBlock'
 import { CustomizePanel } from './CustomizePanel'
-import { ChevronDownIcon, ImageIcon, LogoutIcon, RefreshIcon, SlidersIcon } from './icons'
+import {
+	CalendarIcon,
+	ChartIcon,
+	ChevronDownIcon,
+	GlobeIcon,
+	ImageIcon,
+	LayersIcon,
+	LogoutIcon,
+	MenuIcon,
+	PencilIcon,
+	PlusIcon,
+	RefreshIcon,
+	SlidersIcon,
+} from './icons'
 import { ProjectPicker } from './ProjectPicker'
+import { Menu, MenuItem, MenuNote, MenuRadio, MenuSeparator, SubMenu } from './Menu'
 import { ViewEditor } from './ViewEditor'
-import { ViewTabs } from './ViewTabs'
 
 const PERIODS: Period[] = [30, 90, 180, 365, 'all']
 
@@ -223,8 +236,58 @@ export function Dashboard({
 	return (
 		<div className="page">
 			<header className="toolbar">
+				<Menu label={t.menu} buttonClass="icon-button tb-menu" showChevron={false} buttonContent={<MenuIcon />}>
+					{(close) => (
+						<>
+							<MenuItem
+								icon={<RefreshIcon className={loading ? 'spin' : ''} />}
+								disabled={loading}
+								onSelect={() => {
+									close()
+									load(true)
+								}}
+							>
+								{loading ? t.refreshing : t.refresh}
+							</MenuItem>
+							<MenuItem
+								icon={<SlidersIcon />}
+								onSelect={() => {
+									close()
+									setCustomizing(true)
+								}}
+							>
+								{t.customize}
+							</MenuItem>
+							<SubMenu icon={<GlobeIcon />} label={t.language} value={LANGS.find((l) => l.value === settings.lang)?.label}>
+								{LANGS.map((l) => (
+									<MenuRadio
+										key={l.value}
+										checked={settings.lang === l.value}
+										onSelect={() => {
+											update({ lang: l.value })
+											close()
+										}}
+									>
+										{l.label}
+									</MenuRadio>
+								))}
+							</SubMenu>
+							<MenuSeparator />
+							<MenuItem
+								icon={<LogoutIcon />}
+								onSelect={() => {
+									close()
+									onLogout()
+								}}
+							>
+								{t.logout}
+							</MenuItem>
+							{version && <MenuNote>ProDash v{version}</MenuNote>}
+						</>
+					)}
+				</Menu>
 				<button
-					className="project-button"
+					className="project-button tb-project"
 					onClick={() => setPicking(true)}
 					aria-label={t.changeProject}
 					title={projectName ?? key}
@@ -232,49 +295,122 @@ export function Dashboard({
 					<span className="project-button-name">{projectName ?? key}</span>
 					<ChevronDownIcon />
 				</button>
-				<div className="segmented" role="radiogroup" aria-label={t.period}>
-					{PERIODS.map((p) => (
-						<button
-							key={p}
-							role="radio"
-							aria-checked={settings.period === p}
-							className={settings.period === p ? 'active' : ''}
-							onClick={() => update({ period: p })}
+				{views && (
+					<div className="tb-view">
+						<Menu
+							label={t.views}
+							buttonContent={
+								<>
+									<LayersIcon />
+									<span className="menu-button-text">
+										<span className="menu-button-prefix">{t.viewPrefix} </span>
+										{activeView?.name ?? t.general}
+									</span>
+								</>
+							}
 						>
-							{t.periods[p]}
-						</button>
-					))}
+							{(close) => (
+								<>
+									<MenuRadio
+										checked={!activeView}
+										onSelect={() => {
+											selectView(null)
+											close()
+										}}
+									>
+										{t.general}
+									</MenuRadio>
+									{views.map((v) => (
+										<MenuRadio
+											key={v.id}
+											checked={activeView?.id === v.id}
+											onSelect={() => {
+												selectView(v.id)
+												close()
+											}}
+										>
+											{v.name}
+										</MenuRadio>
+									))}
+									<MenuSeparator />
+									{activeView && scope && (
+										<SubMenu icon={<ChartIcon />} label={t.estimateWith} value={t.scope[scope]}>
+											{(['project', 'selection'] as const).map((s) => (
+												<MenuRadio
+													key={s}
+													checked={scope === s}
+													onSelect={() => {
+														update({ viewScope: { ...settings.viewScope, [activeView.id]: s } })
+														close()
+													}}
+												>
+													{t.scope[s]}
+												</MenuRadio>
+											))}
+										</SubMenu>
+									)}
+									{activeView && (
+										<MenuItem
+											icon={<PencilIcon />}
+											onSelect={() => {
+												close()
+												setEditing(activeView)
+											}}
+										>
+											{t.editView}
+										</MenuItem>
+									)}
+									<MenuItem
+										icon={<PlusIcon />}
+										onSelect={() => {
+											close()
+											setEditing('new')
+										}}
+									>
+										{t.newView}
+									</MenuItem>
+								</>
+							)}
+						</Menu>
+					</div>
+				)}
+				<div className="tb-period">
+					<Menu
+						label={t.period}
+						align="end"
+						buttonContent={
+							<>
+								<CalendarIcon />
+								<span className="menu-button-text">{t.periods[settings.period]}</span>
+							</>
+						}
+					>
+						{(close) =>
+							PERIODS.map((p) => (
+								<MenuRadio
+									key={p}
+									checked={settings.period === p}
+									onSelect={() => {
+										update({ period: p })
+										close()
+									}}
+								>
+									{t.periods[p]}
+								</MenuRadio>
+							))
+						}
+					</Menu>
 				</div>
-				<div className="actions">
-					<button className="button" onClick={() => load(true)} disabled={loading} aria-label={t.refresh}>
-						<RefreshIcon className={loading ? 'spin' : ''} />
-						<span className="button-text">{t.refresh}</span>
-					</button>
-					<button className="button" onClick={() => setCustomizing(true)} aria-label={t.customize}>
-						<SlidersIcon />
-						<span className="button-text">{t.customize}</span>
-					</button>
-					<button className="button primary" onClick={() => setExporting(true)} disabled={!summary || exporting}>
-						<ImageIcon />
-						<span>{exporting ? t.creating : t.downloadPng}</span>
-					</button>
-					<button className="icon-button" onClick={onLogout} aria-label={t.logout} title={t.logout}>
-						<LogoutIcon />
-					</button>
-				</div>
+				<button
+					className="button primary tb-png"
+					onClick={() => setExporting(true)}
+					disabled={!summary || exporting}
+					aria-label={t.downloadPng}
+				>
+					<ImageIcon />
+					<span className="tb-png-text">{exporting ? t.creating : t.downloadPng}</span>
+				</button>
 			</header>
-
-			{views && (
-				<ViewTabs
-					views={views}
-					active={activeView}
-					scope={scope}
-					onSelect={selectView}
-					onNew={() => setEditing('new')}
-					onEdit={() => activeView && setEditing(activeView)}
-					onScope={(s) => activeView && update({ viewScope: { ...settings.viewScope, [activeView.id]: s } })}
-				/>
-			)}
 
 			{mock && <p className="banner">{t.demo}</p>}
 			{error && (

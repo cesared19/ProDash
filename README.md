@@ -12,11 +12,21 @@ Muestra:
 - **Por epic**: cada epic con sus tickets abiertos y los cerrados en el periodo, y una barra por estado. Al tocarla se despliegan sus tickets con enlace a Jira. Las subtareas cuentan en la epic de su ticket padre; los tickets sin epic van en el grupo *Sin epic*.
   Con el selector **Ritmo | Estado | Entrega** se ve cuánto falta para cerrar cada epic a su ritmo de cierre, según el estado de sus tickets, o hasta su fecha de entrega (*Due date* de la epic en Jira), con una etiqueta que indica si llega a tiempo.
 
+### Barra superior
+
+- **☰**: Actualizar, Personalizar, Idioma y Salir.
+- **Proyecto**: elige el proyecto de Jira.
+- **Vista**: General o una vista guardada, *Estimar con*, *Editar vista* y *Nueva vista*.
+- **Periodo**: 30 días, 90 días, 6 meses, 1 año o todo.
+- **Descargar PNG**.
+
+En pantallas estrechas (media pantalla, móvil) la barra pasa a dos filas: menú, proyecto y PNG arriba; vista y periodo debajo.
+
 ### Vistas
 
-Además del dashboard **General** se pueden crear **vistas** con nombre (por ejemplo, una por producto), que aparecen como pestañas arriba y muestran solo una selección de tickets. Con **Nueva vista** se eligen epics (con todos sus tickets), tickets sueltos, etiquetas, componentes o una consulta JQL; entra todo lo que cumpla cualquiera de los criterios. Las vistas son compartidas: las ve todo el que entra al dashboard.
+Además del dashboard **General** se pueden crear **vistas** con nombre (por ejemplo, una por producto), que se eligen en el menú **Vista** de la barra superior y muestran solo una selección de tickets. Con **Vista → Nueva vista** se eligen epics (con todos sus tickets), tickets sueltos, etiquetas, componentes o una consulta JQL; entra todo lo que cumpla cualquiera de los criterios. Las vistas son compartidas: las ve todo el que entra al dashboard.
 
-En cada vista, **Estimar con** elige de dónde salen el ritmo de cierre y los tiempos por estado: del **histórico de todo el proyecto** (más datos) o **solo de los tickets de la vista** (más específico). Los tipos de ticket excluidos en Personalizar tampoco cuentan dentro de las vistas.
+En cada vista, **Vista → Estimar con** elige de dónde salen el ritmo de cierre y los tiempos por estado: del **histórico de todo el proyecto** (más datos) o **solo de los tickets de la vista** (más específico). Los tipos de ticket excluidos en Personalizar (menú ☰) tampoco cuentan dentro de las vistas.
 
 Con el interruptor **Desglose de bugs** (en cada vista, o en Personalizar para General) aparece el bloque **Bugs abiertos**: el total de bugs y errores sin cerrar, cuántos están por hacer y en curso, y cuántos hay de cada prioridad de Jira. Se cuentan aunque el tipo Error/Bug esté excluido de los demás bloques.
 
@@ -69,7 +79,7 @@ Las vistas guardadas están en el volumen de Docker `prodash-data` y se conserva
 
 **Volver a la versión anterior** si algo falla: lo mismo con la etiqueta anterior (`git checkout v1.0.1` y `docker compose up -d --build`). El `.env` no cambia entre versiones.
 
-La versión instalada se ve en la pantalla de entrada y en Personalizar.
+La versión instalada se ve en la pantalla de entrada, al pie del menú ☰ y en Personalizar.
 
 ## Versiones y cambios
 

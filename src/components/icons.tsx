@@ -159,3 +159,23 @@ export const BugIcon = (p: P) => (
 		<path d="M9 7a3 3 0 0 1 6 0M12 11v9M3 13h4M17 13h4M4 7l3 2M20 7l-3 2M4 19l3-2M20 19l-3-2" />
 	</Icon>
 )
+
+export const MenuIcon = (p: P) => (
+	<Icon {...p}>
+		<path d="M4 6h16M4 12h16M4 18h16" />
+	</Icon>
+)
+
+export const CalendarIcon = (p: P) => (
+	<Icon {...p}>
+		<rect x="3" y="4" width="18" height="18" rx="2" />
+		<path d="M16 2v4M8 2v4M3 10h18" />
+	</Icon>
+)
+
+export const GlobeIcon = (p: P) => (
+	<Icon {...p}>
+		<circle cx="12" cy="12" r="10" />
+		<path d="M2 12h20M12 2a15 15 0 0 1 0 20M12 2a15 15 0 0 0 0 20" />
+	</Icon>
+)
