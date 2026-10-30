@@ -124,10 +124,217 @@ svg {
 
 .toolbar {
 	display: flex;
-	flex-wrap: wrap;
 	align-items: center;
-	gap: 12px;
+	gap: 10px;
 	margin-bottom: 16px;
+}
+
+/* Wide: one row, the PNG button at the end. Long names shorten with "…". */
+.tb-png {
+	margin-left: auto;
+	flex-shrink: 0;
+}
+
+.tb-view {
+	min-width: 0;
+	flex: 0 1 auto;
+}
+
+.tb-view .menu,
+.tb-view .menu-button {
+	max-width: 100%;
+}
+
+/* Narrow (split screen, phones): two independent rows. First the menu, the
+   project and PNG; then the view, taking the room the short period label
+   leaves, and the period. A full-width spacer breaks the line. */
+@media (max-width: 900px) {
+	/* The spacer is a line of its own: half gaps add up to one between rows. */
+	.toolbar {
+		flex-wrap: wrap;
+		row-gap: 5px;
+	}
+	.toolbar::after {
+		content: '';
+		order: 3;
+		flex-basis: 100%;
+		height: 0;
+	}
+	.toolbar > .menu:first-child {
+		order: 0;
+	}
+	.toolbar .tb-project {
+		order: 1;
+		flex: 1 1 0;
+		max-width: none;
+	}
+	.tb-png {
+		order: 2;
+		margin-left: 0;
+	}
+	.tb-view {
+		order: 4;
+		flex: 1 1 0;
+	}
+	.tb-period {
+		order: 5;
+	}
+	.tb-view .menu,
+	.tb-view .menu-button {
+		width: 100%;
+	}
+}
+
+@media (max-width: 600px) {
+	.tb-png-text,
+	.menu-button-prefix {
+		display: none;
+	}
+	.tb-png {
+		width: 48px;
+		padding: 0;
+	}
+}
+
+/* ---------- Menus ---------- */
+
+.menu {
+	position: relative;
+	min-width: 0;
+}
+
+.menu-button {
+	display: inline-flex;
+	align-items: center;
+	gap: 8px;
+	min-height: 48px;
+	padding: 8px 14px;
+	border: 2px solid var(--border);
+	border-radius: 12px;
+	background: var(--surface);
+	font-weight: 700;
+	font-size: 1.0625rem;
+	white-space: nowrap;
+}
+
+.menu-button-text {
+	flex: 1;
+	min-width: 0;
+	overflow: hidden;
+	text-overflow: ellipsis;
+	text-align: left;
+}
+
+.menu-chevron {
+	opacity: 0.7;
+}
+
+.menu-popover {
+	position: absolute;
+	top: calc(100% + 6px);
+	z-index: 20;
+	min-width: 240px;
+	max-width: min(360px, calc(100vw - 32px));
+	max-height: 70vh;
+	overflow-y: auto;
+	padding: 6px;
+	border: 1px solid var(--border);
+	border-radius: 14px;
+	background: var(--surface);
+	box-shadow: 0 12px 32px rgb(0 0 0 / 0.2);
+}
+
+.menu-popover.align-start {
+	left: 0;
+}
+
+.menu-popover.align-end {
+	right: 0;
+}
+
+.menu-item {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	width: 100%;
+	min-height: 46px;
+	padding: 8px 10px;
+	border: 0;
+	border-radius: 10px;
+	background: transparent;
+	text-align: left;
+	font-size: 1.0625rem;
+	font-weight: 600;
+}
+
+.menu-item:hover,
+.menu-item:focus-visible {
+	background: var(--surface-2);
+}
+
+.menu-item:focus-visible {
+	outline-offset: -2px;
+}
+
+.menu-item-icon {
+	display: inline-grid;
+	place-items: center;
+	width: 1.5rem;
+	flex-shrink: 0;
+	color: var(--muted);
+}
+
+.menu-check {
+	color: var(--accent);
+	font-weight: 800;
+}
+
+.menu-item-text {
+	flex: 1;
+	display: flex;
+	justify-content: space-between;
+	gap: 12px;
+	min-width: 0;
+}
+
+.menu-item-text.stacked {
+	flex-direction: column;
+	justify-content: center;
+	gap: 0;
+}
+
+.menu-item-value {
+	color: var(--muted);
+	font-weight: 500;
+	font-size: 0.95rem;
+}
+
+.submenu-chevron {
+	transform: rotate(-90deg);
+	transition: transform 0.15s;
+	color: var(--muted);
+}
+
+.submenu-chevron.open {
+	transform: none;
+}
+
+.submenu {
+	margin: 2px 0 4px 1.25rem;
+	padding-left: 6px;
+	border-left: 2px solid var(--surface-2);
+}
+
+.menu-separator {
+	height: 1px;
+	margin: 6px 4px;
+	background: var(--surface-2);
+}
+
+.menu-note {
+	padding: 8px 10px 4px;
+	color: var(--muted);
+	font-size: 0.875rem;
 }
 
 .project-button {
@@ -176,13 +383,6 @@ svg {
 	background: var(--surface);
 	color: var(--text);
 	box-shadow: 0 1px 3px rgb(0 0 0 / 0.15);
-}
-
-.actions {
-	display: flex;
-	flex-shrink: 0;
-	gap: 8px;
-	margin-left: auto;
 }
 
 .button {
@@ -884,56 +1084,7 @@ input[type='password'],
 	font-weight: 600;
 }
 
-/* The toolbar reflows in steps instead of wrapping wherever it runs out of
-   room: first the period selector moves to its own full-width row under the
-   project and the buttons, then Refresh and Customize keep only their icon. */
-@media (min-width: 1241px) {
-	/* One row: a long project name shortens with an ellipsis instead of wrapping. */
-	.toolbar {
-		flex-wrap: nowrap;
-	}
-	.toolbar > .segmented {
-		flex-shrink: 0;
-	}
-}
-
-@media (max-width: 1240px) and (min-width: 721px) {
-	/* The project name takes the room left beside the buttons and shortens
-	   with an ellipsis, so it never pushes them to another row. */
-	.project-button {
-		flex: 1 1 0;
-		max-width: max-content;
-	}
-}
-
-@media (max-width: 1240px) {
-	.toolbar > .segmented {
-		order: 3;
-		flex-basis: 100%;
-	}
-	.toolbar > .segmented button {
-		flex: 1;
-	}
-}
-
-@media (max-width: 900px) {
-	.button-text {
-		display: none;
-	}
-}
-
 @media (max-width: 720px) {
-	.button-text {
-		display: none;
-	}
-	.actions {
-		margin-left: 0;
-		width: 100%;
-	}
-	.actions .primary {
-		flex: 1;
-	}
-	.project-button,
 	.segmented {
 		width: 100%;
 	}
@@ -1198,59 +1349,6 @@ span.issue-key {
 
 /* ---------- Saved views ---------- */
 
-.views-bar {
-	display: grid;
-	gap: 10px;
-	margin-bottom: 16px;
-}
-
-.view-tabs {
-	display: flex;
-	gap: 8px;
-	overflow-x: auto;
-	padding-bottom: 2px;
-	scrollbar-width: thin;
-}
-
-.view-tabs button {
-	flex-shrink: 0;
-	display: inline-flex;
-	align-items: center;
-	gap: 6px;
-	min-height: 44px;
-	padding: 8px 18px;
-	border-radius: 999px;
-	border: 2px solid var(--border);
-	background: var(--surface);
-	font-weight: 700;
-	font-size: 1.0625rem;
-	white-space: nowrap;
-}
-
-.view-tabs button.active {
-	background: var(--text);
-	border-color: var(--text);
-	color: var(--bg);
-}
-
-.view-tabs .view-new {
-	border-style: dashed;
-	color: var(--accent);
-	background: transparent;
-}
-
-.view-options {
-	display: flex;
-	flex-wrap: wrap;
-	align-items: center;
-	gap: 8px 12px;
-}
-
-.view-options-label {
-	font-weight: 700;
-	color: var(--text-2);
-}
-
 .report-view {
 	color: var(--accent);
 }
@@ -1414,12 +1512,6 @@ textarea.jql {
 }
 
 @media (max-width: 720px) {
-	.view-options .segmented {
-		width: 100%;
-	}
-	.view-options .segmented button {
-		flex: 1;
-	}
 	.editor-buttons .button {
 		flex: 1;
 	}
