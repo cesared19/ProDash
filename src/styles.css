@@ -131,6 +131,8 @@ svg {
 }
 
 .project-button {
+	min-width: 0;
+	flex: 0 1 auto;
 	display: inline-flex;
 	align-items: center;
 	gap: 8px;
@@ -178,6 +180,7 @@ svg {
 
 .actions {
 	display: flex;
+	flex-shrink: 0;
 	gap: 8px;
 	margin-left: auto;
 }
@@ -879,6 +882,44 @@ input[type='password'],
 
 .project-name {
 	font-weight: 600;
+}
+
+/* The toolbar reflows in steps instead of wrapping wherever it runs out of
+   room: first the period selector moves to its own full-width row under the
+   project and the buttons, then Refresh and Customize keep only their icon. */
+@media (min-width: 1241px) {
+	/* One row: a long project name shortens with an ellipsis instead of wrapping. */
+	.toolbar {
+		flex-wrap: nowrap;
+	}
+	.toolbar > .segmented {
+		flex-shrink: 0;
+	}
+}
+
+@media (max-width: 1240px) and (min-width: 721px) {
+	/* The project name takes the room left beside the buttons and shortens
+	   with an ellipsis, so it never pushes them to another row. */
+	.project-button {
+		flex: 1 1 0;
+		max-width: max-content;
+	}
+}
+
+@media (max-width: 1240px) {
+	.toolbar > .segmented {
+		order: 3;
+		flex-basis: 100%;
+	}
+	.toolbar > .segmented button {
+		flex: 1;
+	}
+}
+
+@media (max-width: 900px) {
+	.button-text {
+		display: none;
+	}
 }
 
 @media (max-width: 720px) {

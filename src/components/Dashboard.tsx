@@ -223,7 +223,12 @@ export function Dashboard({
 	return (
 		<div className="page">
 			<header className="toolbar">
-				<button className="project-button" onClick={() => setPicking(true)} aria-label={t.changeProject}>
+				<button
+					className="project-button"
+					onClick={() => setPicking(true)}
+					aria-label={t.changeProject}
+					title={projectName ?? key}
+				>
 					<span className="project-button-name">{projectName ?? key}</span>
 					<ChevronDownIcon />
 				</button>
