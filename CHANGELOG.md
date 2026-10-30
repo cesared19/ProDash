@@ -2,6 +2,11 @@
 
 Todos los cambios de ProDash por versión. El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y las versiones, [versionado semántico](https://semver.org/lang/es/).
 
+## [1.3.2] - 2026-10-30
+
+### Corregido
+- La barra superior se reacomoda por pasos al estrechar la ventana (por ejemplo, con la pantalla dividida): en una fila cuando hay sitio; luego proyecto y botones arriba y el periodo debajo, a todo el ancho; después Actualizar y Personalizar solo con su ícono. Un nombre de proyecto largo se recorta con "…" (completo al pasar el ratón) en lugar de mover los botones a otra fila.
+
 ## [1.3.1] - 2026-10-23
 
 ### Corregido
@@ -60,6 +65,7 @@ Primera versión, la que corre en el servidor de la empresa.
 - Contraseña compartida; el token de Jira queda en el servidor.
 - `npm run check` para diagnosticar la conexión con Jira.
 
+[1.3.2]: https://github.com/cesared19/ProDash/compare/v1.3.1...v1.3.2
 [1.3.1]: https://github.com/cesared19/ProDash/compare/v1.3.0...v1.3.1
 [1.3.0]: https://github.com/cesared19/ProDash/compare/v1.2.0...v1.3.0
 [1.2.0]: https://github.com/cesared19/ProDash/compare/v1.1.0...v1.2.0
