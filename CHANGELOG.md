@@ -2,6 +2,12 @@
 
 Todos los cambios de ProDash por versión. El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y las versiones, [versionado semántico](https://semver.org/lang/es/).
 
+## [1.4.1] - 2026-10-30
+
+### Corregido
+- Con Personalizar, el asistente de vista o el selector de proyecto abiertos, el dashboard de fondo ya no se desplaza: el desplazamiento se queda dentro del panel y la página no salta al cerrarlo.
+- Al elegir una opción de un menú, devolver el foco al botón ya no desplaza la página.
+
 ## [1.4.0] - 2026-10-30
 
 ### Cambiado
@@ -72,6 +78,7 @@ Primera versión, la que corre en el servidor de la empresa.
 - Contraseña compartida; el token de Jira queda en el servidor.
 - `npm run check` para diagnosticar la conexión con Jira.
 
+[1.4.1]: https://github.com/cesared19/ProDash/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/cesared19/ProDash/compare/v1.3.2...v1.4.0
 [1.3.2]: https://github.com/cesared19/ProDash/compare/v1.3.1...v1.3.2
 [1.3.1]: https://github.com/cesared19/ProDash/compare/v1.3.0...v1.3.1

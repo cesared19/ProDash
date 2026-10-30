@@ -966,7 +966,20 @@ input[type='password'],
 	margin: 0;
 }
 
+/* While a panel is open the page behind it stays still: the scroll stays
+   inside the panel and never passes to the dashboard. The scrollbar keeps
+   its space so hiding it does not move the page. */
+html {
+	scrollbar-gutter: stable;
+}
+
+html:has(.overlay),
+html:has(.overlay) body {
+	overflow: hidden;
+}
+
 .overlay {
+	overscroll-behavior: contain;
 	position: fixed;
 	inset: 0;
 	background: rgb(15 23 42 / 0.55);
@@ -977,6 +990,7 @@ input[type='password'],
 }
 
 .sheet {
+	overscroll-behavior: contain;
 	background: var(--surface);
 	border-radius: 24px;
 	padding: 24px;
