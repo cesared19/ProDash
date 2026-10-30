@@ -31,6 +31,20 @@ export type StatusForecast = {
 	workUnits: number
 }
 
+export type StuckLevel = 'warning' | 'severe'
+
+// Tickets in progress for more than twice the usual time in their status.
+export type StuckTicket = {
+	key: string
+	summary: string
+	status: string
+	category: StatusCount['category']
+	days: number
+	usualDays: number
+	times: number
+	level: StuckLevel
+}
+
 export type Delivery = 'done' | 'onTrack' | 'late' | 'overdue' | 'unknown' | 'noDate'
 
 export type EpicGroup = {
@@ -54,7 +68,13 @@ export type EpicGroup = {
 	statusDelivery: Delivery
 	byStatus: StatusCount[]
 	issueCount: number
-	issues: { key: string; summary: string; status: string; category: StatusCount['category'] }[]
+	issues: {
+		key: string
+		summary: string
+		status: string
+		category: StatusCount['category']
+		stuck: StuckLevel | null
+	}[]
 }
 
 export type Summary = {
@@ -80,6 +100,7 @@ export type Summary = {
 	history: { date: string; open: number }[]
 	epics: EpicGroup[]
 	statusForecast: StatusForecast | null
+	stuck: { count: number; items: StuckTicket[] }
 	view: { id: string; name: string } | null
 	estimateScope: EstimateScope
 	bugs: BugSummary | null

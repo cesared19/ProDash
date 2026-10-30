@@ -9,6 +9,7 @@ Muestra:
 - **Para cerrar todo**: cuánto falta al ritmo actual de cierre, con la fecha estimada.
 - **¿Cuánto tardan?**: el tiempo promedio que tarda un ticket en cerrarse comparado con el tiempo que llevan esperando los abiertos. El color indica si van **al día** (verde), si piden **atención** (ámbar) o si van **atrasados** (rojo).
 - **Trayectoria**: la evolución de los tickets abiertos y la proyección hasta cerrarlos.
+- **Tickets atascados**: los tickets en curso que llevan en su estado más del doble de lo normal (**Atención**) o más del triple (**Muy atascado**), comparado con lo que suelen durar los tickets en ese estado según el historial de Jira. En la lista de cada epic se marcan con ⏳.
 - **Por epic**: cada epic con sus tickets abiertos y los cerrados en el periodo, y una barra por estado. Al tocarla se despliegan sus tickets con enlace a Jira. Las subtareas cuentan en la epic de su ticket padre; los tickets sin epic van en el grupo *Sin epic*.
   Con el selector **Ritmo | Estado | Entrega** se ve cuánto falta para cerrar cada epic a su ritmo de cierre, según el estado de sus tickets, o hasta su fecha de entrega (*Due date* de la epic en Jira), con una etiqueta que indica si llega a tiempo.
 

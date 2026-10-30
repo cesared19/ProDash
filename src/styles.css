@@ -1628,3 +1628,210 @@ textarea.jql {
 .prio-none {
 	background: var(--neutral);
 }
+
+/* ---------- Stuck tickets ---------- */
+
+.stuck-summary {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: baseline;
+	gap: 12px;
+}
+
+.stuck-number {
+	font-size: 3.5rem;
+	font-weight: 800;
+	line-height: 1;
+	font-variant-numeric: tabular-nums;
+}
+
+.stuck-label {
+	font-size: 1.25rem;
+	font-weight: 700;
+}
+
+.stuck-legend {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 8px 16px;
+	margin: 10px 0 14px;
+	color: var(--text-2);
+	font-weight: 600;
+}
+
+.stuck-legend > span {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+}
+
+.sev {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	padding: 4px 12px;
+	border-radius: 999px;
+	color: #fff;
+	font-weight: 700;
+	font-size: 0.95rem;
+	white-space: nowrap;
+}
+
+.sev svg {
+	width: 1.1em;
+	height: 1.1em;
+}
+
+.scale-legend {
+	display: flex;
+	align-items: center;
+	gap: 8px;
+	margin-bottom: 4px;
+	color: var(--muted);
+	font-weight: 600;
+}
+
+.tick-sample {
+	flex-shrink: 0;
+	width: 3px;
+	height: 18px;
+	border-radius: 2px;
+	background: var(--text);
+}
+
+.stuck-list {
+	list-style: none;
+	margin: 0;
+	padding: 0;
+}
+
+.stuck-row {
+	display: grid;
+	gap: 8px;
+	padding: 14px 0;
+	border-top: 1px solid var(--surface-2);
+}
+
+.stuck-head {
+	display: flex;
+	flex-wrap: wrap;
+	align-items: center;
+	gap: 8px 10px;
+	font-size: 1.0625rem;
+}
+
+.stuck-head .issue-summary {
+	flex: 1 1 14rem;
+	min-width: 0;
+}
+
+.bar-row {
+	display: grid;
+	grid-template-columns: 1fr 4.5rem;
+	align-items: center;
+	gap: 12px;
+}
+
+.stuck-bar {
+	position: relative;
+	height: 22px;
+	border-radius: 6px;
+	background: var(--surface-2);
+}
+
+.stuck-fill {
+	position: absolute;
+	inset: 0 auto 0 0;
+	min-width: 6px;
+	border-radius: 6px;
+}
+
+.stuck-normal {
+	position: absolute;
+	top: -4px;
+	bottom: -4px;
+	width: 3px;
+	border-radius: 2px;
+	background: var(--text);
+}
+
+.times-big {
+	font-size: 1.5rem;
+	font-weight: 800;
+	text-align: right;
+	font-variant-numeric: tabular-nums;
+}
+
+.stuck-time {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 4px 10px;
+	font-size: 1.0625rem;
+}
+
+.stuck-time strong {
+	font-size: 1.125rem;
+}
+
+.stuck-more {
+	margin-top: 12px;
+}
+
+.empty-ok {
+	display: flex;
+	align-items: center;
+	gap: 10px;
+	margin: 0;
+	padding: 8px 0;
+	font-size: 1.25rem;
+	font-weight: 700;
+	color: var(--good-text);
+}
+
+.empty-ok svg {
+	width: 2rem;
+	height: 2rem;
+}
+
+/* The hourglass next to a stuck ticket in an epic's list. The status column
+   has a fixed width with room for it, so the keys line up on every row. */
+.issue-status {
+	display: inline-flex;
+	align-items: center;
+	gap: 6px;
+	width: 12rem;
+	min-width: 0;
+}
+
+.issue-status .status-pill {
+	min-width: 0;
+}
+
+@container (max-width: 640px) {
+	.issue-status {
+		width: auto;
+	}
+}
+
+.stuck-icon {
+	display: inline-grid;
+	place-items: center;
+	flex-shrink: 0;
+	width: 28px;
+	height: 28px;
+	border-radius: 50%;
+	color: #fff;
+}
+
+.stuck-icon svg {
+	width: 16px;
+	height: 16px;
+}
+
+.stuck-icon.severe {
+	background: var(--bad);
+}
+
+.stuck-icon.warning {
+	background: var(--warning);
+}

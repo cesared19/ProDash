@@ -129,6 +129,19 @@ const es = {
 	today: 'Hoy',
 	goal: (date: string) => `Meta ${date}`,
 	openCount: 'abiertos',
+	// Stuck tickets
+	stuckTitle: 'Tickets atascados',
+	stuckSummary: (n: number): string =>
+		n === 1 ? 'ticket lleva más del doble de lo normal en su estado' : 'tickets llevan más del doble de lo normal en su estado',
+	stuckLevel: { severe: 'Muy atascado', warning: 'Atención' },
+	stuckLegendSevere: 'más de 3 veces lo normal',
+	stuckLegendWarning: 'entre 2 y 3 veces',
+	stuckScale: '= lo normal en ese estado · la barra muestra cuántas veces lo lleva',
+	stuckFor: 'Lleva',
+	stuckUsual: (time: string) => `· lo normal: ${time}`,
+	stuckNone: 'Nada atascado: todos van dentro de lo normal.',
+	stuckBar: (time: string, usual: string) => `Lleva ${time}; lo normal son ${usual}`,
+	stuckIcon: (level: string, time: string, times: string) => `${level}: lleva ${time} en este estado (×${times})`,
 	// Bugs
 	bugsTitle: 'Bugs abiertos',
 	bugsOpen: (n: number): string => (n === 1 ? 'bug sin cerrar' : 'bugs sin cerrar'),
@@ -213,6 +226,7 @@ const es = {
 		trajectory: 'Trayectoria',
 		epics: 'Por epic',
 		bugs: 'Bugs',
+		stuck: 'Tickets atascados',
 	} satisfies Record<BlockId, string>,
 }
 
@@ -332,6 +346,18 @@ const en: Messages = {
 	today: 'Today',
 	goal: (date: string) => `Goal ${date}`,
 	openCount: 'open',
+	stuckTitle: 'Stuck tickets',
+	stuckSummary: (n: number): string =>
+		n === 1 ? 'ticket has been in its status more than twice as long as usual' : 'tickets have been in their status more than twice as long as usual',
+	stuckLevel: { severe: 'Very stuck', warning: 'Attention' },
+	stuckLegendSevere: 'more than 3 times the usual',
+	stuckLegendWarning: 'between 2 and 3 times',
+	stuckScale: '= the usual time in that status · the bar shows how many times it has been',
+	stuckFor: 'In status for',
+	stuckUsual: (time: string) => `· usual: ${time}`,
+	stuckNone: 'Nothing stuck: everything is within the usual time.',
+	stuckBar: (time: string, usual: string) => `In status for ${time}; usually ${usual}`,
+	stuckIcon: (level: string, time: string, times: string) => `${level}: ${time} in this status (×${times})`,
 	bugsTitle: 'Open bugs',
 	bugsOpen: (n: number) => (n === 1 ? 'open bug' : 'open bugs'),
 	bugsTodo: (n: string) => `${n} to do`,
@@ -412,6 +438,7 @@ const en: Messages = {
 		trajectory: 'Trajectory',
 		epics: 'By epic',
 		bugs: 'Bugs',
+		stuck: 'Stuck tickets',
 	},
 }
 

@@ -7,6 +7,7 @@ import type { BlockId, Period, Settings } from '../settings'
 import { ClosedBlock, EtaBlock, OpenBlock, StatusesBlock, TimesBlock, TrajectoryBlock } from './Blocks'
 import { BugsBlock } from './BugsBlock'
 import { EpicsBlock } from './EpicsBlock'
+import { StuckBlock } from './StuckBlock'
 import { CustomizePanel } from './CustomizePanel'
 import {
 	CalendarIcon,
@@ -49,6 +50,7 @@ const BLOCK_VIEWS: Record<BlockId, { Component: (p: BlockProps) => JSX.Element; 
 	trajectory: { Component: TrajectoryBlock, size: 'half' },
 	epics: { Component: EpicsBlock, size: 'full' },
 	bugs: { Component: BugsBlock, size: 'half' },
+	stuck: { Component: StuckBlock, size: 'full' },
 }
 
 const REFRESH_MS = 5 * 60 * 1000

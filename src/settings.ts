@@ -2,9 +2,9 @@ import { useCallback, useState } from 'react'
 import type { EstimateScope } from './api'
 import { browserLang, type Lang } from './i18n'
 
-export type BlockId = 'open' | 'closed' | 'eta' | 'statuses' | 'times' | 'trajectory' | 'epics' | 'bugs'
+export type BlockId = 'open' | 'closed' | 'eta' | 'statuses' | 'stuck' | 'times' | 'trajectory' | 'epics' | 'bugs'
 
-export const BLOCKS: BlockId[] = ['open', 'closed', 'eta', 'statuses', 'bugs', 'times', 'trajectory', 'epics']
+export const BLOCKS: BlockId[] = ['open', 'closed', 'eta', 'statuses', 'stuck', 'bugs', 'times', 'trajectory', 'epics']
 
 export type Period = 30 | 90 | 180 | 365 | 'all'
 
@@ -50,9 +50,15 @@ function load(): Settings {
 	try {
 		const saved = JSON.parse(localStorage.getItem(STORAGE_KEY) ?? '{}') as Partial<Settings>
 		const merged = { ...DEFAULTS, ...saved }
-		// Keep the order valid if blocks are added or removed in a new version.
-		const known = BLOCKS
-		merged.order = [...merged.order.filter((id) => known.includes(id)), ...known.filter((id) => !merged.order.includes(id))]
+		// Keep the order valid if blocks are added or removed in a new version:
+		// a new block goes right after the one that precedes it by default.
+		const order = merged.order.filter((id) => BLOCKS.includes(id))
+		for (const id of BLOCKS) {
+			if (order.includes(id)) continue
+			const before = BLOCKS.slice(0, BLOCKS.indexOf(id)).reverse().find((b) => order.includes(b))
+			order.splice(before ? order.indexOf(before) + 1 : 0, 0, id)
+		}
+		merged.order = order
 		return merged
 	} catch {
 		return DEFAULTS

@@ -2,6 +2,17 @@
 
 Todos los cambios de ProDash por versión. El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y las versiones, [versionado semántico](https://semver.org/lang/es/).
 
+## [1.5.0] - 2026-10-30
+
+### Agregado
+- Bloque **Tickets atascados**: los tickets en curso que llevan en su estado actual más del doble de lo que suelen durar los tickets en ese estado (medido con el historial de Jira). Dos niveles con ícono y color: **Atención** (entre 2 y 3 veces) y **Muy atascado** (más de 3 veces).
+- Cada ticket muestra su estado, clave (con enlace a Jira), título, cuánto lleva y lo normal, y una barra en una escala común con la marca de "lo normal" en el mismo sitio en todas las filas. Ordenados de más a menos atascado, de 5 en 5.
+- Ícono **⏳** junto a los tickets atascados en la lista de tickets de cada epic, con el detalle al pasar el ratón.
+- Respeta las vistas y su *Estimar con*, se puede ocultar o mover en Personalizar y sale en el PNG.
+
+### Cambiado
+- Un bloque nuevo aparece en su posición por defecto aunque ya hubiera un orden guardado (antes iba al final).
+
 ## [1.4.1] - 2026-10-30
 
 ### Corregido
@@ -78,6 +89,7 @@ Primera versión, la que corre en el servidor de la empresa.
 - Contraseña compartida; el token de Jira queda en el servidor.
 - `npm run check` para diagnosticar la conexión con Jira.
 
+[1.5.0]: https://github.com/cesared19/ProDash/compare/v1.4.1...v1.5.0
 [1.4.1]: https://github.com/cesared19/ProDash/compare/v1.4.0...v1.4.1
 [1.4.0]: https://github.com/cesared19/ProDash/compare/v1.3.2...v1.4.0
 [1.3.2]: https://github.com/cesared19/ProDash/compare/v1.3.1...v1.3.2
