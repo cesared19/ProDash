@@ -7,6 +7,7 @@ import express from 'express'
 import { loadEnvFile, readConfig } from './env.js'
 import { createJiraClient, JiraError } from './jira.js'
 import { createMockClient } from './mock.js'
+import { buildBugReport } from './bugreport.js'
 import { applyDueDates, buildSummary, isBugType, normalizeIssue, summarizeBugs } from './metrics.js'
 import { messages } from './messages.js'
 import { createViewStore, selectionMatcher, ViewError, viewJql } from './views.js'
@@ -250,6 +251,65 @@ app.get('/api/projects/:key/summary', async (req, res, next) => {
 		}
 		summaryCache.set(cacheKey, { until: Date.now() + CACHE_MS, body })
 		for (const [k, v] of summaryCache) if (v.until < Date.now()) summaryCache.delete(k)
+		res.json(body)
+	} catch (e) {
+		next(e)
+	}
+})
+
+// ---------- Daily bug report ----------
+
+// Open bugs, plus those closed lately: enough to rebuild the counts of the
+// last three working weeks.
+const BUG_HISTORY_DAYS = 30
+
+app.get('/api/projects/:key/bug-report', async (req, res, next) => {
+	const key = projectKey(req, res)
+	if (!key) return
+	const view = req.query.view ? views.get(String(req.query.view)) : null
+	if (req.query.view && (!view || view.projectKey !== key)) {
+		return res.status(404).json({ error: messages(req).viewNotFound })
+	}
+	const cacheKey = JSON.stringify(['bugs', key, view?.id, view?.updatedAt])
+	const cached = summaryCache.get(cacheKey)
+	if (cached && cached.until > Date.now() && req.query.fresh !== '1') return res.json(cached.body)
+	try {
+		const bugTypes = (await jira.issueTypes(key)).filter(isBugType).map((t) => t.id)
+		if (!bugTypes.length) return res.status(400).json({ error: messages(req).noBugTypes })
+		const base = `project = "${key}" AND issuetype in (${bugTypes.join(',')})`
+		const fields = ['summary', 'status', 'priority', 'created', 'resolutiondate', 'statuscategorychangedate', 'parent', 'labels', 'components']
+		const [open, closed] = await Promise.all([
+			jira.search(`${base} AND statusCategory != Done`, fields, MAX_ISSUES),
+			jira.search(`${base} AND statusCategory = Done AND updated >= -${BUG_HISTORY_DAYS}d`, fields, MAX_ISSUES),
+		])
+		let openBugs = open.issues.map(normalizeIssue)
+		let closedBugs = closed.issues.map(normalizeIssue)
+		const hasCriteria = view && (view.epics.length || view.issues.length || view.labels.length || view.components.length || view.jql)
+		if (hasCriteria) {
+			let jqlKeys
+			if (view.jql) {
+				try {
+					jqlKeys = new Set((await jira.search(viewJql(key, view.jql), ['summary'], MAX_ISSUES)).issues.map((i) => i.key))
+				} catch (e) {
+					if (e instanceof JiraError && e.status === 400) {
+						return res.status(400).json({ error: messages(req).jqlInvalid(e.detail) })
+					}
+					throw e
+				}
+			}
+			const inView = selectionMatcher(view, [...openBugs, ...closedBugs], jqlKeys)
+			openBugs = openBugs.filter(inView)
+			closedBugs = closedBugs.filter(inView)
+		}
+		const body = {
+			...buildBugReport({ open: openBugs, closed: closedBugs, timeZone: config.timeZone }),
+			generatedAt: new Date().toISOString(),
+			projectKey: key,
+			view: view ? { id: view.id, name: view.name } : null,
+			jiraBaseUrl: config.mock ? null : config.jira.baseUrl,
+			truncated: open.truncated || closed.truncated,
+		}
+		summaryCache.set(cacheKey, { until: Date.now() + CACHE_MS, body })
 		res.json(body)
 	} catch (e) {
 		next(e)

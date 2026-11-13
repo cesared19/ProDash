@@ -77,6 +77,8 @@ export function validateView(input) {
 	if (!name || name.length > 60) throw new ViewError('name')
 	const view = {
 		name,
+		// 'project': the dashboard of tasks, subtasks and epics. 'bugs': the daily bug report.
+		template: input.template === 'bugs' ? 'bugs' : 'project',
 		epics: stringList(input.epics, { pattern: ISSUE_KEY }),
 		issues: stringList(input.issues, { pattern: ISSUE_KEY }),
 		labels: stringList(input.labels),
@@ -86,7 +88,9 @@ export function validateView(input) {
 		bugBreakdown: input.bugBreakdown === true,
 	}
 	if (view.jql.length > 2000) throw new ViewError('jql')
-	if (!view.epics.length && !view.issues.length && !view.labels.length && !view.components.length && !view.jql) {
+	// A bug report without criteria covers every bug of the project.
+	const noCriteria = !view.epics.length && !view.issues.length && !view.labels.length && !view.components.length && !view.jql
+	if (noCriteria && view.template !== 'bugs') {
 		throw new ViewError('empty')
 	}
 	return view

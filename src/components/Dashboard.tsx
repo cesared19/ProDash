@@ -1,10 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { api, ApiError, defaultExcluded, type IssueType, type SavedView, type Summary } from '../api'
+import {
+	api,
+	ApiError,
+	defaultExcluded,
+	type BugReport as BugReportData,
+	type IssueType,
+	type SavedView,
+	type Summary,
+} from '../api'
 import { longDate, periodLabel } from '../format'
 import { LANGS, useT } from '../i18n'
 import { exportPng, REPORT_WIDTH } from '../exportPng'
 import type { BlockId, Period, Settings } from '../settings'
 import { ClosedBlock, EtaBlock, OpenBlock, StatusesBlock, TimesBlock, TrajectoryBlock } from './Blocks'
+import { BugReport, sinceLabel } from './BugReport'
 import { BugsBlock } from './BugsBlock'
 import { EpicsBlock } from './EpicsBlock'
 import { StuckBlock } from './StuckBlock'
@@ -75,6 +84,7 @@ export function Dashboard({
 	const [projectName, setProjectName] = useState<string | null>(null)
 	const [issueTypes, setIssueTypes] = useState<IssueType[] | null>(null)
 	const [summary, setSummary] = useState<Summary | null>(null)
+	const [bugReport, setBugReport] = useState<BugReportData | null>(null)
 	const [error, setError] = useState<string | null>(null)
 	const [loading, setLoading] = useState(false)
 	const [picking, setPicking] = useState(false)
@@ -94,6 +104,7 @@ export function Dashboard({
 		if (!key) return
 		setIssueTypes(null)
 		setSummary(null)
+		setBugReport(null)
 		setEpicUiState({})
 		setViews(null)
 		api.views(key).then(setViews, (e) => {
@@ -119,6 +130,8 @@ export function Dashboard({
 	const activeView = (selectedId && views?.find((v) => v.id === selectedId)) || null
 	const viewsReady = !selectedId || views != null
 	const scope = activeView ? (settings.viewScope[activeView.id] ?? activeView.estimateScope) : null
+	// A bug report view shows the daily bug report instead of the project blocks.
+	const bugView = activeView?.template === 'bugs'
 	const viewParam = activeView ? `${activeView.id}|${activeView.updatedAt}|${scope}` : ''
 	// Views decide the bug breakdown themselves; General follows Customize.
 	const generalBugs = !activeView && settings.bugsGeneral
@@ -126,35 +139,43 @@ export function Dashboard({
 	function selectView(id: string | null) {
 		if (!key) return
 		setEpicUiState({})
+		setBugReport(null)
 		update({ selectedView: { ...settings.selectedView, [key]: id } })
 	}
 
-	const load = useCallback(async (fresh = false) => {
-		if (!key || excludedKey == null || !viewsReady) return
-		const [viewId, , viewScope] = viewParam.split('|')
-		setLoading(true)
-		setError(null)
-		try {
-			setSummary(
-				await api.summary(
-					key,
-					settings.period,
-					excludedKey ? excludedKey.split(',') : [],
-					JSON.parse(statusDaysKey),
-					fresh,
-					viewId ? { id: viewId, scope: viewScope as 'project' | 'selection' } : null,
-					generalBugs,
-				),
-			)
-		} catch (e) {
-			onUnauthorized(e)
-			// The view was deleted elsewhere: refresh the list, which falls back to General.
-			if (e instanceof ApiError && e.status === 404 && viewId) api.views(key).then(setViews, () => {})
-			setError((e as Error).message)
-		} finally {
-			setLoading(false)
-		}
-	}, [key, excludedKey, statusDaysKey, settings.period, viewsReady, viewParam, generalBugs, onUnauthorized])
+	const load = useCallback(
+		async (fresh = false) => {
+			if (!key || excludedKey == null || !viewsReady) return
+			const [viewId, , viewScope] = viewParam.split('|')
+			setLoading(true)
+			setError(null)
+			try {
+				if (bugView) {
+					setBugReport(await api.bugReport(key, viewId, fresh))
+					return
+				}
+				setSummary(
+					await api.summary(
+						key,
+						settings.period,
+						excludedKey ? excludedKey.split(',') : [],
+						JSON.parse(statusDaysKey),
+						fresh,
+						viewId ? { id: viewId, scope: viewScope as 'project' | 'selection' } : null,
+						generalBugs,
+					),
+				)
+			} catch (e) {
+				onUnauthorized(e)
+				// The view was deleted elsewhere: refresh the list, which falls back to General.
+				if (e instanceof ApiError && e.status === 404 && viewId) api.views(key).then(setViews, () => {})
+				setError((e as Error).message)
+			} finally {
+				setLoading(false)
+			}
+		},
+		[key, excludedKey, statusDaysKey, settings.period, viewsReady, viewParam, bugView, generalBugs, onUnauthorized],
+	)
 
 	useEffect(() => {
 		load()
@@ -165,13 +186,15 @@ export function Dashboard({
 	// The off-screen copy mounts when `exporting` turns on; capture it once the
 	// chart has measured its new width.
 	useEffect(() => {
-		if (!exporting || !summary) return
+		const data = bugView ? bugReport : summary
+		if (!exporting || !data) return
 		let cancelled = false
 		const timer = setTimeout(async () => {
 			try {
 				if (!exportRef.current) return
-				const date = summary.generatedAt.slice(0, 10)
-				await exportPng(exportRef.current, `${t.fileName}-${summary.projectKey}-${date}.png`, t.pngError)
+				const date = data.generatedAt.slice(0, 10)
+				const name = bugView ? t.bugFileName : t.fileName
+				await exportPng(exportRef.current, `${name}-${data.projectKey}-${date}.png`, t.pngError)
 			} catch (e) {
 				if (!cancelled) setError((e as Error).message)
 			} finally {
@@ -182,7 +205,7 @@ export function Dashboard({
 			cancelled = true
 			clearTimeout(timer)
 		}
-	}, [exporting, summary, t])
+	}, [exporting, summary, bugReport, bugView, t])
 
 	if (!key) {
 		return <ProjectPicker current={null} onPick={(k) => update({ projectKey: k })} onUnauthorized={onUnauthorized} />
@@ -194,6 +217,27 @@ export function Dashboard({
 	)
 
 	function renderReport(className: string, ref?: React.Ref<HTMLDivElement>) {
+		if (bugView) {
+			return (
+				<div className={className} ref={ref}>
+					<div className="report-head">
+						<h1>
+							{projectName ?? key}
+							{activeView && <span className="report-view"> · {activeView.name}</span>}
+						</h1>
+						<p>
+							{bugReport
+								? t.bugReportLine(longDate(t, bugReport.generatedAt), sinceLabel(t, bugReport)) +
+									t.bugReportTz(bugReport.timeZone)
+								: ' '}
+						</p>
+					</div>
+					{!bugReport && !error && <div className="loading">{t.loadingData}</div>}
+					{bugReport && <BugReport report={bugReport} />}
+					{bugReport?.truncated && <p className="note">{t.truncated}</p>}
+				</div>
+			)
+		}
 		return (
 			<div className={className} ref={ref}>
 				<div className="report-head">
@@ -228,9 +272,7 @@ export function Dashboard({
 						{visibleBlocks.length === 0 && <p className="empty">{t.allHidden}</p>}
 					</div>
 				)}
-				{summary?.truncated && (
-					<p className="note">{t.truncated}</p>
-				)}
+				{summary?.truncated && <p className="note">{t.truncated}</p>}
 			</div>
 		)
 	}
@@ -260,7 +302,11 @@ export function Dashboard({
 							>
 								{t.customize}
 							</MenuItem>
-							<SubMenu icon={<GlobeIcon />} label={t.language} value={LANGS.find((l) => l.value === settings.lang)?.label}>
+							<SubMenu
+								icon={<GlobeIcon />}
+								label={t.language}
+								value={LANGS.find((l) => l.value === settings.lang)?.label}
+							>
 								{LANGS.map((l) => (
 									<MenuRadio
 										key={l.value}
@@ -335,7 +381,7 @@ export function Dashboard({
 										</MenuRadio>
 									))}
 									<MenuSeparator />
-									{activeView && scope && (
+									{activeView && scope && !bugView && (
 										<SubMenu icon={<ChartIcon />} label={t.estimateWith} value={t.scope[scope]}>
 											{(['project', 'selection'] as const).map((s) => (
 												<MenuRadio
@@ -376,37 +422,39 @@ export function Dashboard({
 						</Menu>
 					</div>
 				)}
-				<div className="tb-period">
-					<Menu
-						label={t.period}
-						align="end"
-						buttonContent={
-							<>
-								<CalendarIcon />
-								<span className="menu-button-text">{t.periods[settings.period]}</span>
-							</>
-						}
-					>
-						{(close) =>
-							PERIODS.map((p) => (
-								<MenuRadio
-									key={p}
-									checked={settings.period === p}
-									onSelect={() => {
-										update({ period: p })
-										close()
-									}}
-								>
-									{t.periods[p]}
-								</MenuRadio>
-							))
-						}
-					</Menu>
-				</div>
+				{!bugView && (
+					<div className="tb-period">
+						<Menu
+							label={t.period}
+							align="end"
+							buttonContent={
+								<>
+									<CalendarIcon />
+									<span className="menu-button-text">{t.periods[settings.period]}</span>
+								</>
+							}
+						>
+							{(close) =>
+								PERIODS.map((p) => (
+									<MenuRadio
+										key={p}
+										checked={settings.period === p}
+										onSelect={() => {
+											update({ period: p })
+											close()
+										}}
+									>
+										{t.periods[p]}
+									</MenuRadio>
+								))
+							}
+						</Menu>
+					</div>
+				)}
 				<button
 					className="button primary tb-png"
 					onClick={() => setExporting(true)}
-					disabled={!summary || exporting}
+					disabled={!(bugView ? bugReport : summary) || exporting}
 					aria-label={t.downloadPng}
 				>
 					<ImageIcon />

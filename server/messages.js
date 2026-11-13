@@ -23,6 +23,7 @@ const MESSAGES = {
 			invalid: 'Datos de la vista no válidos.',
 		},
 		viewNotFound: 'La vista ya no existe; puede que otra persona la haya borrado.',
+		noBugTypes: 'Este proyecto de Jira no tiene un tipo de ticket de bug o error.',
 		jqlInvalid: (detail) => `La JQL de la vista no es válida${detail ? `: ${detail}` : ''}.`,
 	},
 	en: {
@@ -48,6 +49,7 @@ const MESSAGES = {
 			invalid: 'Invalid view data.',
 		},
 		viewNotFound: 'The view no longer exists; someone may have deleted it.',
+		noBugTypes: 'This Jira project has no bug or error issue type.',
 		jqlInvalid: (detail) => `The view's JQL is not valid${detail ? `: ${detail}` : ''}.`,
 	},
 }

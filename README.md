@@ -29,6 +29,11 @@ Además del dashboard **General** se pueden crear **vistas** con nombre (por eje
 
 En cada vista, **Vista → Estimar con** elige de dónde salen el ritmo de cierre y los tiempos por estado: del **histórico de todo el proyecto** (más datos) o **solo de los tickets de la vista** (más específico). Los tipos de ticket excluidos en Personalizar (menú ☰) tampoco cuentan dentro de las vistas.
 
+Al crear una vista se elige su **plantilla**:
+
+- **Proyecto**: el dashboard de siempre, para tasks, subtasks y epics.
+- **Reporte diario de bugs**: los bugs abiertos ahora frente al cierre del día laborable anterior (el lunes se compara con el viernes), con flecha y color si suben o bajan; los nuevos y los cerrados desde entonces (con la lista de tickets); los abiertos por prioridad con su cambio, y la tendencia de los últimos 15 días laborables. Por defecto entran todos los bugs del proyecto; los criterios de la vista son opcionales y sirven para limitarlo. Los días se cortan en la zona horaria de `TIMEZONE` (por defecto, Ciudad de México).
+
 Con el interruptor **Desglose de bugs** (en cada vista, o en Personalizar para General) aparece el bloque **Bugs abiertos**: el total de bugs y errores sin cerrar, cuántos están por hacer y en curso, y cuántos hay de cada prioridad de Jira. Se cuentan aunque el tipo Error/Bug esté excluido de los demás bloques.
 
 Se puede personalizar qué bloques se ven, su orden, qué tipos de ticket no se cuentan, el idioma (español o inglés) y activar el texto extra grande. Las preferencias se guardan en cada dispositivo; el idioma inicial es el del navegador y también se puede cambiar en la pantalla de entrada. Los nombres de estados y tipos de ticket se muestran tal como están en Jira.
@@ -109,6 +114,7 @@ Si macOS pregunta si permite conexiones entrantes para `node`, acepta para que e
 - **Un ticket tarda** = promedio de días entre creación y cierre de los cerrados en el periodo. **Los abiertos llevan** = promedio de días desde la creación de los abiertos.
 - **Proyección por estado** (vista *Estado*): con el historial de Jira de los tickets cerrados en el periodo se mide cuánto suele faltar para cerrar un ticket desde que entra en cada estado. A cada ticket abierto se le calcula lo que le falta según su estado y el tiempo que ya lleva en él. Una epic termina cuando lo hace su ticket más lento, pero nunca más rápido de lo que el equipo cierra ese trabajo a su ritmo. Si un estado tiene menos de 3 mediciones, se usa su tipo de estado (por hacer o en curso). Los valores se pueden corregir en *Personalizar*.
 - **Estado**: al día si los abiertos llevan menos que lo que tarda un ticket en cerrarse, atención hasta 1,5 veces y atrasado por encima.
+- **Reporte diario de bugs**: un bug cuenta como abierto en un momento si ya se había creado y todavía no se había cerrado; así los números de días anteriores se reconstruyen con las fechas de creación y cierre, sin guardar historial. Las prioridades son las actuales.
 - Se consideran hasta 5.000 tickets abiertos y 5.000 cerrados.
 
 ## Problemas frecuentes

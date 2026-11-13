@@ -2,6 +2,15 @@
 
 Todos los cambios de ProDash por versión. El formato sigue [Keep a Changelog](https://keepachangelog.com/es-ES/1.1.0/) y las versiones, [versionado semántico](https://semver.org/lang/es/).
 
+## [1.6.0] - 2026-11-13
+
+### Agregado
+- **Plantillas de vista**: al crear o editar una vista se elige **Proyecto** (el dashboard de tasks, subtasks y epics de siempre) o **Reporte diario de bugs**. Las vistas que ya existían quedan como Proyecto.
+- **Reporte diario de bugs**: bugs abiertos ahora frente al cierre del día laborable anterior (el lunes, frente al viernes) con flecha, signo y color si suben o bajan; nuevos y cerrados desde entonces, comparados con el día anterior y con la lista de tickets; abiertos por prioridad con su cambio; y tendencia de los últimos 15 días laborables.
+- Por defecto el reporte incluye todos los bugs del proyecto; epics, tickets, etiquetas, componentes o JQL sirven como filtro opcional.
+- El PNG del reporte de bugs se descarga como `reporte-bugs-…png`.
+- Nueva variable `TIMEZONE` (por defecto `America/Mexico_City`) para cortar los días del reporte.
+
 ## [1.5.0] - 2026-10-30
 
 ### Agregado

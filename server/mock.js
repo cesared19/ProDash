@@ -86,15 +86,19 @@ function generate(projectKey) {
 	const total = 160 + Math.floor(rand() * 80)
 	for (let n = 1; n <= total; n++) {
 		const type = TYPES[Math.floor(rand() * TYPES.length)]
-		const created = now - rand() * 200 * DAY
-		const isDone = rand() < 0.62
+		// Many bugs are recent, so the daily bug report has days to compare.
+		const recentBug = type.id === BUG_TYPE_ID && rand() < 0.7
+		const created = now - rand() * (recentBug ? 20 : 200) * DAY
+		const closeAfter = (recentBug ? 0.3 + rand() * 6 : 2 + rand() * 30) * DAY
+		// A recent bug closes only if that moment has already come.
+		const isDone = rand() < 0.62 && (!recentBug || created + closeAfter < now)
 		const status = isDone
 			? { name: 'Hecho', category: 'done' }
 			: (() => {
 					let r = rand() * OPEN_STATUSES.reduce((a, s) => a + s.weight, 0)
 					return OPEN_STATUSES.find((s) => (r -= s.weight) < 0) ?? OPEN_STATUSES[0]
 				})()
-		const closed = isDone ? Math.min(now, created + (2 + rand() * 30) * DAY) : null
+		const closed = isDone ? Math.min(now, created + closeAfter) : null
 		// Subtasks hang from an earlier issue; the rest from an epic (or none).
 		const epicIndex = Math.floor(rand() * (EPICS.length + 1))
 		const parentN = type.subtask && n > 1 ? 1 + Math.floor(rand() * (n - 1)) : null
@@ -134,6 +138,7 @@ function generate(projectKey) {
 
 // Two products sharing one Jira project, told apart by label and component.
 const LABELS = ['producto-a', 'producto-b', 'urgente']
+const BUG_TYPE_ID = '10004'
 const PRIORITIES = ['Highest', 'High', 'Medium', 'Low', 'Lowest'].map((name, i) => ({ id: String(i + 1), name }))
 const COMPONENTS = ['App', 'Backend', 'Web']
 
@@ -170,8 +175,13 @@ export function createMockClient() {
 			// Pickers of the view editor.
 			const typeIds = jql.match(/issuetype in \(([^)]*)\)/)?.[1]?.split(',')
 			if (typeIds && !typeIds.includes('10005')) {
+				const done = /statusCategory = Done/.test(jql)
+				const days = Number(jql.match(/updated >= -(\d+)d/)?.[1]) || null
 				const issues = generate(key).filter(
-					(i) => typeIds.includes(i.typeId) && i.fields.status.statusCategory.key !== 'done',
+					(i) =>
+						typeIds.includes(i.typeId) &&
+						(i.fields.status.statusCategory.key === 'done') === done &&
+						(!days || Date.parse(i.fields.updated) >= Date.now() - days * DAY),
 				)
 				return { issues, truncated: false }
 			}
