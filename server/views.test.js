@@ -27,7 +27,9 @@ function issue(key, { done = false, parent, labels = [], components = [], create
 
 test('validates views and rejects empty or broken ones', () => {
 	const v = validateView({ name: '  Producto A ', epics: ['SCRUM-1', 'SCRUM-1'], labels: ['a'], extra: 'x' })
-	assert.deepEqual(v, { name: 'Producto A', epics: ['SCRUM-1'], issues: [], labels: ['a'], components: [], jql: '', estimateScope: 'project', bugBreakdown: false })
+	assert.deepEqual(v, { name: 'Producto A', template: 'project', epics: ['SCRUM-1'], issues: [], labels: ['a'], components: [], jql: '', estimateScope: 'project', bugBreakdown: false })
+	// A daily bug report may cover every bug, without criteria.
+	assert.equal(validateView({ name: 'Bugs', template: 'bugs' }).template, 'bugs')
 	assert.equal(validateView({ name: 'B', labels: ['b'], bugBreakdown: true }).bugBreakdown, true)
 	assert.throws(() => validateView({ name: 'Vacía' }), (e) => e instanceof ViewError && e.message === 'empty')
 	assert.throws(() => validateView({ name: '', labels: ['a'] }), (e) => e.message === 'name')

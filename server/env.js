@@ -21,10 +21,23 @@ export function loadEnvFile(file) {
 	}
 }
 
+// The time zone where the daily bug report cuts days; null if unknown.
+function validTimeZone(name) {
+	if (!name) return null
+	try {
+		new Intl.DateTimeFormat('en', { timeZone: name })
+		return name
+	} catch {
+		console.error(`TIMEZONE "${name}" no es una zona horaria válida; se usa America/Mexico_City.`)
+		return null
+	}
+}
+
 export function readConfig() {
 	const mock = /^(1|true|yes)$/i.test(process.env.JIRA_MOCK ?? '')
 	const config = {
 		port: Number(process.env.PORT) || 3100,
+		timeZone: validTimeZone(process.env.TIMEZONE) ?? 'America/Mexico_City',
 		password: process.env.DASHBOARD_PASSWORD ?? '',
 		mock,
 		jira: {

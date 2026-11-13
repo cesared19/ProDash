@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
-import { api, type EstimateScope, type PickedIssue, type SavedView, type ViewInput } from '../api'
+import { api, type EstimateScope, type PickedIssue, type SavedView, type ViewInput, type ViewTemplate } from '../api'
 import { useT } from '../i18n'
-import { CloseIcon } from './icons'
+import { BugIcon, CloseIcon, LayersIcon } from './icons'
 
 const EMPTY: ViewInput = {
 	name: '',
+	template: 'project',
 	epics: [],
 	issues: [],
 	labels: [],
@@ -43,7 +44,12 @@ function CheckList({
 	return (
 		<>
 			{items.length > 8 && (
-				<input className="search small" placeholder={t.filter} value={filter} onChange={(e) => setFilter(e.target.value)} />
+				<input
+					className="search small"
+					placeholder={t.filter}
+					value={filter}
+					onChange={(e) => setFilter(e.target.value)}
+				/>
 			)}
 			<div className="check-list">
 				{visible.map((item) => (
@@ -151,6 +157,8 @@ export function ViewEditor({
 		draft.components.length ? t.countComponents(draft.components.length) : '',
 		draft.jql.trim() ? t.countJql : '',
 	].filter(Boolean)
+	// A bug report without criteria covers every bug of the project.
+	const bugs = draft.template === 'bugs'
 
 	return (
 		<div className="overlay" onClick={onClose}>
@@ -180,6 +188,26 @@ export function ViewEditor({
 					autoFocus={!view}
 				/>
 				<p className="muted">{t.viewHelp}</p>
+
+				<h3>{t.template}</h3>
+				<div className="template-cards" role="radiogroup" aria-label={t.template}>
+					{(['project', 'bugs'] as ViewTemplate[]).map((tp) => (
+						<button
+							key={tp}
+							role="radio"
+							aria-checked={draft.template === tp}
+							className={`template-card${draft.template === tp ? ' active' : ''}`}
+							onClick={() => patch({ template: tp })}
+						>
+							<span className="template-icon">{tp === 'bugs' ? <BugIcon /> : <LayersIcon />}</span>
+							<span className="template-text">
+								<strong>{t.templates[tp].name}</strong>
+								<span>{t.templates[tp].help}</span>
+							</span>
+						</button>
+					))}
+				</div>
+				{bugs && <p className="muted template-note">{t.bugFilterOptional}</p>}
 
 				<h3>{t.pickEpics}</h3>
 				<CheckList
@@ -237,7 +265,11 @@ export function ViewEditor({
 				)}
 
 				<h3>{t.pickLabels}</h3>
-				<CheckList items={labels} selected={draft.labels} onToggle={(l) => patch({ labels: toggle(draft.labels, l) })} />
+				<CheckList
+					items={labels}
+					selected={draft.labels}
+					onToggle={(l) => patch({ labels: toggle(draft.labels, l) })}
+				/>
 
 				<h3>{t.pickComponents}</h3>
 				<CheckList
@@ -263,36 +295,40 @@ export function ViewEditor({
 				</div>
 				{jqlResult && <p className={jqlResult.ok ? 'jql-ok' : 'form-error'}>{jqlResult.text}</p>}
 
-				<h3>{t.defaultEstimate}</h3>
-				<div className="segmented" role="radiogroup" aria-label={t.defaultEstimate}>
-					{(['project', 'selection'] as EstimateScope[]).map((s) => (
-						<button
-							key={s}
-							role="radio"
-							aria-checked={draft.estimateScope === s}
-							className={draft.estimateScope === s ? 'active' : ''}
-							onClick={() => patch({ estimateScope: s })}
-						>
-							{t.scope[s]}
-						</button>
-					))}
-				</div>
-				<p className="muted">{t.scopeHelp[draft.estimateScope]}</p>
+				{!bugs && (
+					<>
+						<h3>{t.defaultEstimate}</h3>
+						<div className="segmented" role="radiogroup" aria-label={t.defaultEstimate}>
+							{(['project', 'selection'] as EstimateScope[]).map((s) => (
+								<button
+									key={s}
+									role="radio"
+									aria-checked={draft.estimateScope === s}
+									className={draft.estimateScope === s ? 'active' : ''}
+									onClick={() => patch({ estimateScope: s })}
+								>
+									{t.scope[s]}
+								</button>
+							))}
+						</div>
+						<p className="muted">{t.scopeHelp[draft.estimateScope]}</p>
 
-				<h3>{t.bugBreakdown}</h3>
-				<label className="switch-row">
-					<input
-						type="checkbox"
-						checked={draft.bugBreakdown}
-						onChange={(e) => patch({ bugBreakdown: e.target.checked })}
-					/>
-					<span>{t.bugBreakdown}</span>
-				</label>
-				<p className="muted">{t.bugBreakdownHelp}</p>
+						<h3>{t.bugBreakdown}</h3>
+						<label className="switch-row">
+							<input
+								type="checkbox"
+								checked={draft.bugBreakdown}
+								onChange={(e) => patch({ bugBreakdown: e.target.checked })}
+							/>
+							<span>{t.bugBreakdown}</span>
+						</label>
+						<p className="muted">{t.bugBreakdownHelp}</p>
+					</>
+				)}
 
 				<div className="editor-footer">
 					<p className="selected-summary">
-						{parts.length ? t.selectedSummary(parts.join(' · ')) : t.nothingSelected}
+						{parts.length ? t.selectedSummary(parts.join(' · ')) : bugs ? t.allBugs : t.nothingSelected}
 					</p>
 					{error && (
 						<p className="form-error" role="alert">
@@ -309,7 +345,11 @@ export function ViewEditor({
 						<button className="button" onClick={onClose}>
 							{t.cancel}
 						</button>
-						<button className="button primary" onClick={save} disabled={busy || !draft.name.trim() || !parts.length}>
+						<button
+							className="button primary"
+							onClick={save}
+							disabled={busy || !draft.name.trim() || (!parts.length && !bugs)}
+						>
 							{busy ? t.saving : t.save}
 						</button>
 					</div>

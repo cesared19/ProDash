@@ -112,6 +112,36 @@ export type Session = { authenticated: boolean; mock: boolean; version?: string 
 
 export type EstimateScope = 'project' | 'selection'
 
+// 'project': the dashboard of tasks, subtasks and epics. 'bugs': the daily bug report.
+export type ViewTemplate = 'project' | 'bugs'
+
+export type BugReportItem = {
+	key: string
+	summary: string
+	status: string
+	category: StatusCount['category']
+	priority: string | null
+	priorityRank: number | null
+}
+
+export type BugReport = {
+	generatedAt: string
+	projectKey: string
+	view: { id: string; name: string } | null
+	jiraBaseUrl: string | null
+	truncated: boolean
+	timeZone: string
+	// Calendar days ("YYYY-MM-DD") in the report's time zone.
+	today: string
+	previousDay: string
+	openNow: number
+	openBefore: number
+	added: { count: number; before: number; items: BugReportItem[] }
+	closed: { count: number; before: number; items: BugReportItem[] }
+	byPriority: { name: string | null; rank: number | null; now: number; before: number }[]
+	trend: { day: string; open: number }[]
+}
+
 // Open bugs; priorities in Jira order (name null = no priority).
 export type BugSummary = {
 	total: number
@@ -124,6 +154,7 @@ export type SavedView = {
 	id: string
 	projectKey: string
 	name: string
+	template: ViewTemplate
 	epics: string[]
 	issues: string[]
 	labels: string[]
@@ -188,6 +219,10 @@ export const api = {
 				`&statusDays=${encodeURIComponent(JSON.stringify(statusDays))}${fresh ? '&fresh=1' : ''}` +
 				(view ? `&view=${encodeURIComponent(view.id)}${view.scope ? `&scope=${view.scope}` : ''}` : '') +
 				(bugs ? '&bugs=1' : ''),
+		),
+	bugReport: (key: string, viewId: string | null, fresh: boolean) =>
+		request<BugReport>(
+			`/api/projects/${encodeURIComponent(key)}/bug-report?${viewId ? `view=${encodeURIComponent(viewId)}` : ''}${fresh ? '&fresh=1' : ''}`,
 		),
 	views: (key: string) => request<SavedView[]>(`/api/projects/${encodeURIComponent(key)}/views`),
 	createView: (key: string, view: ViewInput) =>
